@@ -8,36 +8,38 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const parse=s=>{s=String(s).replace(/\s/g,"").replace(",",".");return s===""?null:Number(s);};
 const SEASONS={"Без сезонности":[1,1,1,1,1,1,1,1,1,1,1,1],"Кафе (летний спад)":[.9,.9,1,1,1,.85,.8,.85,1.05,1.1,1.15,1.4],"Туризм (лето)":[.5,.5,.7,.8,1.1,1.5,1.7,1.6,1.1,.8,.6,1.1],"Образование (сентябрь)":[1.1,1.1,1.1,1,.9,.5,.4,.8,1.5,1.3,1.2,1.1]};
 const FIELDS=[
- ["Продажи",[["price","Средний чек / цена, ₽"],["volume","Продаж в месяц (на старте мощности)"],["growthPct","Рост продаж, % в месяц"],["rampMonths","Выход на мощность, мес."],["delayDays","Отсрочка оплаты клиентов, дней"],["season","Сезонность","season"]]],
- ["Затраты",[["varCostPct","Переменные затраты, % выручки"],["fixed","Постоянные расходы, ₽/мес (аренда, услуги…)"],["fixedIndexPct","Рост постоянных, % в год"]]],
+ ["Продажи",[["growthPct","Рост продаж, % в месяц"],["rampMonths","Выход на мощность, мес."],["delayDays","Отсрочка оплаты клиентов, дней"],["season","Сезонность","season"]]],
+ ["Затраты",[["fixed","Постоянные расходы, ₽/мес (аренда, услуги…)"],["fixedIndexPct","Рост постоянных, % в год"]]],
  ["Персонал",[["staff","Работников, чел."],["salary","Зарплата, ₽/мес (до НДФЛ)"],["salaryIndexPct","Индексация зарплаты, % в год"],["msp","ОКВЭД в перечне льготы МСП","chk"]]],
  ["Инвестиции и финансирование",[["ownFunds","Собственные средства на старте, ₽"]]],
  ["Налоги",[["prevIncome","Доход за год до старта, ₽"],["physSharePct","Доля дохода от физлиц, %"],["vatExpSharePct","Доля расходов с входящим НДС, %"],["psnPotential","Потенциальный доход по патенту, ₽/год"],["usnRegionalIncome","Ставка УСН «Доходы» в регионе, % (пусто — 6)"],["usnRegionalProfit","Ставка УСН «Д−Р» в регионе, % (пусто — 15)"],["resale","Перепродажа товаров","chk"],["ausnRegion","АУСН введена в регионе","chk"]]],
- ["Горизонт и ставка",[["startYear","Год старта","sel",[2026,2027]],["horizon","Горизонт, мес.","sel",[12,24,36,60]],["discountRatePct","Ставка дисконтирования, % годовых"]]],
+ ["Горизонт и ставка",[["startYear","Год старта","sel",[2026,2027]],["horizon","Горизонт, мес.","sel",[12,24,36,60]],["discountRatePct","Ставка дисконтирования, % годовых"],["terminalMode","Остаточная стоимость активов в NPV","opt",[["none","не учитывать"],["book","по остаточной стоимости"],["sale","продажа за % от остаточной"]]],["terminalPct","Цена продажи, % от остаточной"]]],
 ];
 const PRESETS={
- "Кофейня":{fin:{investments:[{name:"Оборудование и мебель",month:1,amount:2500000,lifeMonths:60},{name:"Ремонт помещения",month:1,amount:1000000,lifeMonths:0}],loans:[{month:1,amount:2000000,ratePct:24,termMonths:36,type:"ANN",graceMonths:0}]},startYear:2026,horizon:36,price:380,volume:3300,growthPct:0.5,rampMonths:6,delayDays:0,season:"Кафе (летний спад)",varCostPct:33,fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,capex:3500000,lifeMonths:60,ownFunds:2000000,loanAmount:2000000,loanRate:24,loanTerm:36,prevIncome:0,physSharePct:100,vatExpSharePct:30,psnPotential:1500000,resale:false,ausnRegion:true,discountRatePct:25},
- "Онлайн-услуги, один ИП":{fin:{investments:[{name:"Ноутбук и ПО",month:1,amount:200000,lifeMonths:36}],loans:[]},startYear:2026,horizon:24,price:15000,volume:12,growthPct:2,rampMonths:3,delayDays:15,season:"Без сезонности",varCostPct:10,fixed:25000,fixedIndexPct:5,staff:0,salary:0,salaryIndexPct:0,msp:false,capex:200000,lifeMonths:36,ownFunds:250000,loanAmount:0,loanRate:0,loanTerm:12,prevIncome:0,physSharePct:70,vatExpSharePct:0,psnPotential:800000,resale:false,ausnRegion:true,discountRatePct:20},
- "Мини-производство":{fin:{investments:[{name:"Производственная линия",month:1,amount:7500000,lifeMonths:84},{name:"Подготовка цеха",month:1,amount:1500000,lifeMonths:0},{name:"Вторая линия",month:25,amount:4000000,lifeMonths:84}],loans:[{month:1,amount:6000000,ratePct:22,termMonths:48,type:"ANN",graceMonths:0}]},startYear:2026,horizon:60,price:1200,volume:2500,growthPct:1,rampMonths:9,delayDays:45,season:"Без сезонности",varCostPct:48,fixed:350000,fixedIndexPct:6,staff:7,salary:60000,salaryIndexPct:7,msp:true,capex:9000000,lifeMonths:84,ownFunds:9000000,loanAmount:6000000,loanRate:22,loanTerm:48,prevIncome:0,physSharePct:10,vatExpSharePct:70,psnPotential:0,resale:false,ausnRegion:true,discountRatePct:25},
+ "Кофейня":{fin:{products:[{name:"Кофе и напитки",price:300,volume:3000,varCostPct:25},{name:"Выпечка и десерты",price:230,volume:1300,varCostPct:55},{name:"Зерно и мерч",price:900,volume:60,varCostPct:60}],investments:[{name:"Оборудование и мебель",month:1,amount:2500000,lifeMonths:60},{name:"Ремонт помещения",month:1,amount:1000000,lifeMonths:0}],loans:[{month:1,amount:2000000,ratePct:24,termMonths:36,type:"ANN",graceMonths:0}]},startYear:2026,horizon:36,price:380,volume:3300,growthPct:0.5,rampMonths:6,delayDays:0,season:"Кафе (летний спад)",varCostPct:33,fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,capex:3500000,lifeMonths:60,ownFunds:2000000,loanAmount:2000000,loanRate:24,loanTerm:36,prevIncome:0,physSharePct:100,vatExpSharePct:30,psnPotential:1500000,resale:false,ausnRegion:true,discountRatePct:25},
+ "Онлайн-услуги, один ИП":{fin:{products:[{name:"Консультация",price:8000,volume:10,varCostPct:5},{name:"Проект под ключ",price:45000,volume:2,varCostPct:15}],investments:[{name:"Ноутбук и ПО",month:1,amount:200000,lifeMonths:36}],loans:[]},startYear:2026,horizon:24,price:15000,volume:12,growthPct:2,rampMonths:3,delayDays:15,season:"Без сезонности",varCostPct:10,fixed:25000,fixedIndexPct:5,staff:0,salary:0,salaryIndexPct:0,msp:false,capex:200000,lifeMonths:36,ownFunds:250000,loanAmount:0,loanRate:0,loanTerm:12,prevIncome:0,physSharePct:70,vatExpSharePct:0,psnPotential:800000,resale:false,ausnRegion:true,discountRatePct:20},
+ "Мини-производство":{fin:{products:[{name:"Изделие А",price:1500,volume:1500,varCostPct:45},{name:"Изделие Б",price:750,volume:1000,varCostPct:55}],investments:[{name:"Производственная линия",month:1,amount:7500000,lifeMonths:84},{name:"Подготовка цеха",month:1,amount:1500000,lifeMonths:0},{name:"Вторая линия",month:25,amount:4000000,lifeMonths:84}],loans:[{month:1,amount:6000000,ratePct:22,termMonths:48,type:"ANN",graceMonths:0}]},startYear:2026,horizon:60,price:1200,volume:2500,growthPct:1,rampMonths:9,delayDays:45,season:"Без сезонности",varCostPct:48,fixed:350000,fixedIndexPct:6,staff:7,salary:60000,salaryIndexPct:7,msp:true,capex:9000000,lifeMonths:84,ownFunds:9000000,loanAmount:6000000,loanRate:22,loanTerm:48,prevIncome:0,physSharePct:10,vatExpSharePct:70,psnPotential:0,resale:false,ausnRegion:true,discountRatePct:25},
 };
 let OVR={},tab="sum",regime="AUTO",inp={};
-const FIN0=()=>({investments:[],loans:[],injections:[],line:{on:false,limit:1000000,ratePct:26,reserve:0}});let FIN=FIN0();
+const FIN0=()=>({products:[],investments:[],loans:[],injections:[],line:{on:false,limit:1000000,ratePct:26,reserve:0}});let FIN=FIN0();
 const DEFAULT=PRESETS["Кофейня"];
 function buildForm(){
  $("form").innerHTML="<h2>Данные проекта</h2>"+FIELDS.map(([g,fs],i)=>`<details class="g" ${i<2?"open":""}><summary>${g}</summary><div class="grid" style="margin-top:8px">`+fs.map(([k,l,t,opts])=>{
   if(t==="chk")return`<div class="chk"><input type="checkbox" id="f_${k}"><label for="f_${k}">${l}</label></div>`;
   if(t==="sel")return`<div><label>${l}</label><select id="f_${k}">${opts.map(o=>`<option>${o}</option>`).join("")}</select></div>`;
   if(t==="season")return`<div><label>${l}</label><select id="f_${k}">${Object.keys(SEASONS).map(o=>`<option>${o}</option>`).join("")}</select></div>`;
-  return`<div><label>${l}</label><input type="text" inputmode="decimal" id="f_${k}"></div>`;}).join("")+`</div>${g==="Инвестиции и финансирование"?'<div id="finEd"></div>':""}</details>`).join("")+`<div id="fErr" class="err"></div>`;
- $("form").addEventListener("input",e=>{if(!e.target.closest("#finEd"))calc();});$("form").addEventListener("change",e=>{if(!e.target.closest("#finEd"))calc();});
+  if(t==="opt")return`<div><label>${l} ${qi("terminal")}</label><select id="f_${k}">${opts.map(([v,n])=>`<option value="${v}">${n}</option>`).join("")}</select></div>`;
+  return`<div><label>${l}</label><input type="text" inputmode="decimal" id="f_${k}"></div>`;}).join("")+`</div>${g==="Инвестиции и финансирование"?'<div id="finEd"></div>':g==="Продажи"?'<div id="prodEd"></div>':""}</details>`).join("")+`<div id="fErr" class="err"></div>`;
+ $("form").addEventListener("input",e=>{if(!e.target.closest("#finEd,#prodEd"))calc();});$("form").addEventListener("change",e=>{if(!e.target.closest("#finEd,#prodEd"))calc();});
 }
-function setForm(p){if(p.fin){FIN=Object.assign(FIN0(),JSON.parse(JSON.stringify(p.fin)));}renderFin();for(const[,fs]of FIELDS)for(const[k,,t]of fs){const el=$("f_"+k);if(t==="chk")el.checked=k==="ausnRegion"?p[k]!==false:!!p[k];else if(t==="sel"||t==="season")el.value=String(p[k]);else el.value=p[k]==null?"":Number(p[k]).toLocaleString("ru-RU");}calc();}
+function opts0(k){for(const[,fs]of FIELDS)for(const f of fs)if(f[0]===k)return f[3][0][0];}
+function setForm(p){if(p.fin){FIN=Object.assign(FIN0(),JSON.parse(JSON.stringify(p.fin)));}renderFin();renderProd();for(const[,fs]of FIELDS)for(const[k,,t]of fs){const el=$("f_"+k);if(t==="chk")el.checked=k==="ausnRegion"?p[k]!==false:!!p[k];else if(t==="sel"||t==="season")el.value=String(p[k]);else if(t==="opt")el.value=p[k]||opts0(k);else el.value=p[k]==null?"":Number(p[k]).toLocaleString("ru-RU");}calc();}
 function readForm(){const o={},bad=[];for(const[,fs]of FIELDS)for(const[k,l,t]of fs){const el=$("f_"+k);
-  if(t==="chk")o[k]=el.checked;else if(t==="sel")o[k]=+el.value;else if(t==="season")o.season=SEASONS[el.value];
+  if(t==="chk")o[k]=el.checked;else if(t==="sel")o[k]=+el.value;else if(t==="opt")o[k]=el.value;else if(t==="season")o.season=SEASONS[el.value];
   else{const v=parse(el.value);if(v!=null&&(isNaN(v)||v<0))bad.push(l);o[k]=v==null||isNaN(v)?null:v;}}
- for(const k of["price","volume","growthPct","rampMonths","delayDays","varCostPct","fixed","fixedIndexPct","staff","salary","salaryIndexPct","ownFunds","prevIncome","vatExpSharePct","psnPotential","discountRatePct"])if(o[k]==null)o[k]=0;
- if(o.physSharePct==null)o.physSharePct=100;o.staff=Math.round(o.staff);o.investments=FIN.investments;o.loans=FIN.loans;o.injections=FIN.injections;o.creditLine=FIN.line;
- if(o.varCostPct>100)bad.push("переменные затраты больше 100%");
+ for(const k of["growthPct","rampMonths","delayDays","fixed","fixedIndexPct","staff","salary","salaryIndexPct","ownFunds","prevIncome","vatExpSharePct","psnPotential","discountRatePct"])if(o[k]==null)o[k]=0;
+ if(o.physSharePct==null)o.physSharePct=100;o.staff=Math.round(o.staff);o.products=FIN.products;o.investments=FIN.investments;o.loans=FIN.loans;o.injections=FIN.injections;o.creditLine=FIN.line;
+ if(o.terminalPct==null)o.terminalPct=100;if(FIN.products.some(p=>p.varCostPct>100))bad.push("переменные затраты продукта больше 100%");if(!FIN.products.length)bad.push("добавьте хотя бы один продукт");
  return{o,bad};}
 function calc(){
  const{o,bad}=readForm();inp=o;$("fErr").textContent=bad.length?"Проверьте: "+bad.join("; "):"";
@@ -120,6 +122,22 @@ $("form").addEventListener("click",e=>{const t=e.target;if(!t.closest("#finEd"))
  else return;
  finChanged(true);});
 
+// ---------- Продукты ----------
+function renderProd(){
+ const el=$("prodEd");if(!el)return;const P=FIN.products;
+ const tot=P.reduce((s,p)=>s+p.price*p.volume,0),mar=P.reduce((s,p)=>s+p.price*p.volume*(1-p.varCostPct/100),0);
+ el.innerHTML=`<div class="fin"><div class="fh"><b>Продукты и услуги</b>${qi("products")}</div>
+ ${P.map((x,i)=>{const r=x.price*x.volume,mg=r*(1-x.varCostPct/100);return`<div class="frow" data-prod="${i}"><div style="grid-column:1/-1"><label>Название</label><input type="text" data-fk="name" value="${esc(x.name||"")}" placeholder="Продукт или услуга"></div><div><label>Цена, ₽</label>${numIn("price",x.price)}</div><div><label>Продаж в месяц</label>${numIn("volume",x.volume)}</div><div><label>Переменные затраты, % ${qi("varC")}</label>${numIn("varCostPct",x.varCostPct)}</div><div class="small" style="grid-column:1/-1">Выручка ${fmtR(r)}/мес · маржа ${fmtR(mg)} (${r?Math.round(mg/r*100):0}%)${tot?` · ${Math.round(mg/(mar||1)*100)}% всей маржи`:""}</div>${P.length>1?`<button class="x xw" data-rmp="${i}" title="Удалить">✕ удалить</button>`:""}</div>`;}).join("")}
+ <button class="add" data-padd="1">+ продукт</button>
+ <div class="small" style="margin-top:4px">Итого на полной мощности: выручка ${fmtR(tot)}/мес, средняя доля маржи ${tot?Math.round(mar/tot*100):0}%. Рост, сезонность и выход на мощность ниже применяются ко всем продуктам.</div></div>`;
+}
+$("form").addEventListener("change",e=>{const t=e.target,row=t.closest("[data-prod]");if(!row)return;const k=t.dataset.fk,x=FIN.products[+row.dataset.prod];
+ x[k]=k==="name"?t.value:(v=>v==null||isNaN(v)?0:Math.max(0,v))(parse(t.value));renderProd();calc();scheduleSave();});
+$("form").addEventListener("click",e=>{const t=e.target;if(!t.closest("#prodEd"))return;
+ if(t.dataset.qi){showG(t.dataset.qi);return;}
+ if(t.dataset.padd)FIN.products.push({name:"",price:1000,volume:100,varCostPct:30});else if(t.dataset.rmp!=null)FIN.products.splice(+t.dataset.rmp,1);else return;
+ renderProd();calc();scheduleSave();});
+
 // ---------- Справочник ----------
 const qi=k=>GLOSSARY[k]?`<button class="qi" data-qi="${k}" title="Что это?" aria-label="Что это?">?</button>`:"";
 function gBody(k){const g=GLOSSARY[k];return`${g.s?`<p>${esc(g.s)}</p>`:""}${g.f?`<p><b>Как считается.</b> ${esc(g.f)}</p>`:""}${g.i?`<p><b>Как читать.</b> ${esc(g.i)}</p>`:""}${g.c?`<p class="small"><b>Осторожно.</b> ${esc(g.c)}</p>`:""}`;}
@@ -148,7 +166,7 @@ function vSum(R){
  `<div class="kpis">${card(fmtM(k.npv),"NPV","npv",k.npv>=0?"good":"badv")}${card(k.irrYear==null?"—":k.irrYear>1000?"> 1000 %":pct(k.irrYear),"IRR, годовых","irr")}${card(pp(k.pp),"Срок окупаемости","pp")}${card(pp(k.dpp),"Дисконт. окупаемость","dpp")}
  ${card(k.pi==null?"—":k.pi.toLocaleString("ru-RU",{maximumFractionDigits:2}),"Индекс доходности PI","pi")}${card(fmtM(k.maxNeed),"Макс. потребность в деньгах","maxNeed")}${card(k.beRevMonth?fmtM(k.beRevMonth):"—","Точка безубыточности, выручка/мес","be")}${card(pct(k.safety),"Запас фин. прочности","safety",k.safety!=null&&k.safety<0?"badv":"")}
  ${card(k.cashGapMonth?k.cashGapMonth+"-й мес.":"нет","Кассовый разрыв","cashGap",k.cashGapMonth?"badv":"good")}${card(fmtM(k.cashMin),"Мин. остаток на счёте","reserve")}${card(k.dscrMin==null?"—":k.dscrMin.toLocaleString("ru-RU",{maximumFractionDigits:2}),"Мин. DSCR","dscr",k.dscrMin!=null&&k.dscrMin<1?"badv":"")}${card(fmtM(k.interestTotal),"Проценты за горизонт","annuity")}
- ${card(fmtM(k.totalTaxes),"Налоги и взносы","burden")}${card(fmtM(k.netTotal),"Чистая прибыль","net")}${card(fmtM(k.investTotal),"Инвестиции за горизонт","invest")}${card(fmtM(k.injectionsTotal),"Вложения собственника","injection")}${card(FIN.line.on?fmtM(k.lineMax):"выкл.","Макс. долг по линии","creditLine")}</div>`+
+ ${card(fmtM(k.totalTaxes),"Налоги и взносы","burden")}${card(fmtM(k.netTotal),"Чистая прибыль","net")}${card(fmtM(k.investTotal),"Инвестиции за горизонт","invest")}${k.terminalValue?card(fmtM(k.terminalValue),"Остаточная стоимость в NPV","terminal"):""}${card(fmtM(k.injectionsTotal),"Вложения собственника","injection")}${card(FIN.line.on?fmtM(k.lineMax):"выкл.","Макс. долг по линии","creditLine")}</div>`+
  chart(R)+`<div class="small">Синяя линия — накопленный поток проекта (без финансирования): где пересекает ноль — окупаемость. Зелёная — остаток денег на счёте с учётом вложений и кредитов: ниже нуля — кассовый разрыв.</div>`;
 }
 
@@ -168,7 +186,10 @@ function vPnl(R){
  const all=[...P.map(p=>({l:String(p.year),p})),{l:"Итого",all:1}];
  if(pnlPer>=all.length)pnlPer=0;
  const cols=narrow()?[all[pnlPer]]:all;
- return`<div class="tbar">${narrow()?perChips(all.map(c=>c.l),pnlPer,"pnl"):""}${unitsBtn()}${qi("pnlRep")}</div>`+table(`БДР, ${units()==="K"?"тыс. ₽":"₽"}`,cols,rows)+
+ const sel=narrow()?all[pnlPer]:all[all.length-1];
+ const byP=sel.all?R.kpi.products:sel.p.byP,tm=byP.reduce((a,x)=>a+x.margin,0);
+ const ptab=byP.length>1?`<h2 style="margin:14px 0 6px">Маржа по продуктам · ${esc(sel.l)} ${qi("products")}</h2><div class="tw"><table class="pt"><tr><th>Продукт</th><th>Маржа, ${units()==="K"?"тыс.":"₽"}</th><th>%</th><th>Доля</th></tr>${[...byP].sort((a,b)=>b.margin-a.margin).map(x=>`<tr><td>${esc(x.name)}</td><td class="${x.margin<0?"neg":""}">${fmtU(x.margin)}</td><td>${x.rev?Math.round(x.margin/x.rev*100):0}</td><td>${tm?Math.round(x.margin/tm*100):0}%</td></tr>`).join("")}</table></div>`:"";
+ return`<div class="tbar">${narrow()?perChips(all.map(c=>c.l),pnlPer,"pnl"):""}${unitsBtn()}${qi("pnlRep")}</div>`+table(`БДР, ${units()==="K"?"тыс. ₽":"₽"}`,cols,rows)+ptab+
  `<div class="small" style="margin-top:6px">Метод начисления. НДС вычтен из выручки как «к уплате» (упрощение). Взносы ИП показаны расходом, потому что для ИП это затраты бизнеса.</div>`;
 }
 function vCf(R){
@@ -275,7 +296,7 @@ function EFF(){return Object.assign({},m0User(),OVR);}
 async function nativeSave(name,txt){const P=window.Capacitor.Plugins;const path=(name||"project").replace(/[\\/:*?"<>|]/g,"_")+".json";
  const r=await P.Filesystem.writeFile({path,data:txt,directory:"CACHE",encoding:"utf8"});await P.Share.share({title:path,url:r.uri,dialogTitle:"Сохранить проект"});}let CUR=null,saveT=null,lastSaved=null;
 function getFormRaw(){const o={};for(const[,fs]of FIELDS)for(const[k,,tp]of fs){const el=$("f_"+k);o[k]=tp==="chk"?el.checked:el.value;}return o;}
-function setFormRaw(o){for(const[,fs]of FIELDS)for(const[k,,tp]of fs){const el=$("f_"+k);if(!(k in o))continue;if(tp==="chk")el.checked=!!o[k];else el.value=o[k];}calc();}
+function setFormRaw(o){for(const[,fs]of FIELDS)for(const[k,,tp]of fs){const el=$("f_"+k);if(!(k in o)){if(tp==="opt")el.value=opts0(k);else if(k==="terminalPct")el.value="100";continue;}if(tp==="chk")el.checked=!!o[k];else el.value=o[k];}calc();}
 function snapshot(){if(!CUR)return;CUR.name=$("projName").value.trim()||"Без названия";CUR.form=getFormRaw();CUR.factors=JSON.parse(JSON.stringify(FACTORS));CUR.tows={...TOWS};CUR.regime=regime;CUR.overrides=OVR;CUR.fin=JSON.parse(JSON.stringify(FIN));}
 function scheduleSave(){if(!CUR)return;clearTimeout(saveT);status("Изменено…");saveT=setTimeout(saveNow,700);}
 function saveNow(){if(!CUR)return;snapshot();try{STORE.save(CUR);lastSaved=new Date();}catch(e){status("Не удалось сохранить: "+(e.message||e)+". Сохраните через «Экспорт».",true);return;}refreshList();status();}
@@ -286,7 +307,8 @@ function openProject(p){CUR=p;$("projName").value=p.name;FACTORS=p.factors||[];f
  FIN=Object.assign(FIN0(),p.fin?JSON.parse(JSON.stringify(p.fin)):{});
  if(!p.fin&&p.form&&parse(p.form.loanAmount)>0)FIN.loans=[{month:1,amount:parse(p.form.loanAmount),ratePct:parse(p.form.loanRate)||0,termMonths:parse(p.form.loanTerm)||12,type:"ANN",graceMonths:0}]; // проекты v0.3
  if(!p.fin||!Array.isArray(p.fin.investments)){const c=p.form&&parse(p.form.capex);FIN.investments=c>0?[{name:"Стартовые инвестиции",month:1,amount:c,lifeMonths:parse(p.form.lifeMonths)||0}]:[];} // проекты v0.3–v0.4
- renderFin();
+ if(!p.fin||!Array.isArray(p.fin.products)||!p.fin.products.length){const f=p.form||{};FIN.products=[{name:"Основной продукт",price:parse(f.price)||0,volume:parse(f.volume)||0,varCostPct:parse(f.varCostPct)||0}];} // проекты до v0.6
+ renderFin();renderProd();
  $("m0msg").textContent=Object.keys(OVR).length?"Правок параметров в проекте: "+Object.keys(OVR).length:"";setFormRaw(p.form);refreshList();status();}
 function newFromTemplate(name){clearTimeout(saveT);loadFactors(name);regime="AUTO";OVR={};FIN=FIN0();setForm(PRESETS[name]);const p=PS.makeProject(name,{form:getFormRaw(),factors:FACTORS,tows:TOWS});CUR=p;$("projName").value=p.name;saveNow();}
 function sheet(html){$("shBox").innerHTML=html;$("sh").classList.add("on");}

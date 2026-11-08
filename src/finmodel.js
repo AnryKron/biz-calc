@@ -51,6 +51,14 @@
       : (inp.capex > 0 ? [{ name: "Стартовые инвестиции", month: 1, amount: inp.capex, lifeMonths: inp.lifeMonths || 0 }] : []);
     return list.filter(x => x && x.amount > 0).map(x => ({ ...x, month: Math.max(1, Math.round(x.month || 1)), amount: x.amount * k, lifeMonths: Math.max(0, Math.round(x.lifeMonths || 0)) }));
   }
+  // Продукты: [{name, price, volume (шт./мес. на полной мощности), varCostPct}]; старый формат — price/volume/varCostPct.
+  // priceMult / volumeMult / varMult — множители для чувствительности и сценариев (ко всем продуктам).
+  function normProducts(inp) {
+    const list = Array.isArray(inp.products) && inp.products.length ? inp.products
+      : [{ name: "Основной продукт", price: inp.price || 0, volume: inp.volume || 0, varCostPct: inp.varCostPct || 0 }];
+    const pm = inp.priceMult ?? 1, vm = inp.volumeMult ?? 1, cm = inp.varMult ?? 1;
+    return list.map(x => ({ name: x.name || "Продукт", price: (x.price || 0) * pm, volume: (x.volume || 0) * vm, varCostPct: Math.min(100, (x.varCostPct || 0) * cm) }));
+  }
   function buildLoans(inp, H) {
     const rows = Array.from({ length: H }, () => ({ interest: 0, principal: 0, draw: 0, balance: 0 }));
     const pays = [];
@@ -99,15 +107,17 @@
     const g = (inp.growthPct || 0) / 100;
 
     // 1. Начисления по месяцам
+    const PR = normProducts(inp);
     const M = [];
     for (let t = 0; t < H; t++) {
       const yi = Math.floor(t / 12), mi = t % 12;
       const ramp = inp.rampMonths && t < inp.rampMonths ? (0.3 + 0.7 * (t + 1) / inp.rampMonths) : 1; // выход на мощность от 30%
-      const vol = inp.volume * Math.pow(1 + g, t) * season[mi] * ramp;
-      const rev = inp.price * vol;
+      const k = Math.pow(1 + g, t) * season[mi] * ramp;
+      const revP = PR.map(p => p.price * p.volume * k), varP = PR.map((p, j) => revP[j] * p.varCostPct / 100);
+      const vol = sum(PR.map(p => p.volume * k)), rev = sum(revP);
       const salary = (inp.salary || 0) * Math.pow(1 + (inp.salaryIndexPct || 0) / 100, yi);
       M.push({ t, yi, mi, year: inp.startYear + yi, vol, rev,
-        varCost: rev * (inp.varCostPct || 0) / 100, fixed: (inp.fixed || 0) * Math.pow(1 + (inp.fixedIndexPct || 0) / 100, yi),
+        revP, varP, varCost: sum(varP), fixed: (inp.fixed || 0) * Math.pow(1 + (inp.fixedIndexPct || 0) / 100, yi),
         salaries: (inp.staff || 0) * salary, salary,
         amort: 0, invest: 0,
         cashIn: 0, payroll: 0, taxPay: 0, vatPay: 0, ipPay: 0, payrollPay: 0, tax: 0, vat: 0, ipContrib: 0 });
@@ -179,6 +189,11 @@
     const L = M[H - 1];
     L.taxPay += tail.tax; L.vatPay += tail.vat; L.ipPay += tail.ip; L.payrollPay += tail.payroll;
 
+    // Остаточная стоимость активов на конец горизонта (для NPV/IRR): не учитывать | по балансовой | продажа за % балансовой.
+    // ASSUMPTION: налог с продажи не учитывается.
+    const bookEnd = sum(INV.filter(x => x.month <= H).map(x => x.amount)) - sum(M.map(m => m.amort));
+    const tv = inp.terminalMode === "book" ? bookEnd : inp.terminalMode === "sale" ? bookEnd * (inp.terminalPct ?? 100) / 100 : 0;
+
     // 3. БДДС
     const inj = Array(H).fill(0);
     inj[0] += inp.ownFunds || 0;
@@ -207,7 +222,7 @@
       m.finCF = m.injection + m.loanDraw - m.principal - m.interest - m.lineInt + m.lineDraw - m.lineRepay;
       m.cashEnd = cash;
       m.projectCF = m.opCF + m.invCF; // поток проекта для NPV (без финансирования)
-      if (m.t === H - 1) m.projectCF += unpaidAR; // ASSUMPTION: дебиторка на конец горизонта будет получена
+      if (m.t === H - 1) m.projectCF += unpaidAR + tv; // ASSUMPTION: дебиторка на конец горизонта будет получена; + остаточная стоимость (если выбрана)
       cum += m.projectCF; m.cumCF = cum; minCum = Math.min(minCum, cum);
       m.disc = m.projectCF / Math.pow(1 + rm, m.t + 1); cumD += m.disc; m.cumDisc = cumD;
     }
@@ -223,7 +238,8 @@
     // точка безубыточности (1-й год, без налогов): постоянные / доля маржи
     const y1 = M.filter(m => m.yi === 0);
     const fcMonth = sum(y1.map(m => m.fixed + m.salaries + m.payroll)) / y1.length;
-    const marginShare = 1 - (inp.varCostPct || 0) / 100;
+    const revY1s = sum(y1.map(m => m.rev)), varY1s = sum(y1.map(m => m.varCost));
+    const marginShare = revY1s > 0 ? 1 - varY1s / revY1s : 1 - (PR[0]?.varCostPct || 0) / 100; // средневзвешенная доля маржи
     const beRev = marginShare > 0 ? fcMonth / marginShare : null;
     const revY1 = sum(y1.map(m => m.rev)) / y1.length;
     const safety = beRev != null && revY1 > 0 ? (revY1 - beRev) / revY1 * 100 : null; // запас финансовой прочности, % (1-й год)
@@ -238,7 +254,8 @@
       const interest = sum(ms.map(m => m.interest + m.lineInt)), ebt = ebit - interest, tax = y.r.tax, net = ebt - tax;
       const debtService = sum(ms.map(m => m.interest + m.principal + m.lineInt));
       const dscr = debtService > 0 ? (ebitda - tax) / debtService : null; // покрытие долга: (EBITDA − налог) / платежи по долгу
-      return { year: y.year, rev, vat, netRev, varC, margin, fixed, sal, pay, ip, ebitda, amort, ebit, interest, ebt, tax, net,
+      const byP = PR.map((p, j) => ({ name: p.name, rev: sum(ms.map(m => m.revP[j])), margin: sum(ms.map(m => m.revP[j] - m.varP[j])) }));
+      return { byP, year: y.year, rev, vat, netRev, varC, margin, fixed, sal, pay, ip, ebitda, amort, ebit, interest, ebt, tax, net,
         ros: netRev ? net / netRev * 100 : 0, dscr, debtService, burden: y.r.burden, burdenPct: y.r.burdenPct, cashIn: y.income };
     });
 
@@ -249,7 +266,8 @@
         npv, irrMultiple: signCh > 1, irrYear: irrM == null ? null : (Math.pow(1 + irrM, 12) - 1) * 100,
         pi: pvNeg ? pvPos / pvNeg : null, pp: firstPos(m => m.cumCF), dpp: firstPos(m => m.cumDisc),
         maxNeed: -minCum, cashGapMonth: gap ? gap.t + 1 : null, cashMin: Math.min(...M.map(m => m.cashEnd)),
-        beRevMonth: beRev, beUnitsMonth: beRev && inp.price ? beRev / inp.price : null,
+        beRevMonth: beRev, beUnitsMonth: beRev && PR.length === 1 && PR[0].price ? beRev / PR[0].price : null,
+        terminalValue: tv, products: PR.map((p, j) => ({ name: p.name, rev: sum(M.map(m => m.revP[j])), margin: sum(M.map(m => m.revP[j] - m.varP[j])) })),
         totalTaxes: sum(years.map(y => y.r.tax + y.r.vat + y.r.ipContrib + y.r.payroll)),
         netTotal: sum(pnl.map(p => p.net)), loanPay: loan.pay, loans: loan.pays, unpaidAR, safety,
         injectionsTotal: sum(inj), investTotal: sum(M.map(m => m.invest)),
@@ -309,9 +327,12 @@
   const FACTORS = [["price", "Цена"], ["volume", "Объём продаж"], ["varCostPct", "Переменные затраты, %"],
     ["fixed", "Постоянные расходы"], ["salary", "Зарплата"], ["capex", "Инвестиции (CAPEX)"]];
   function sensitivity(inp, defs, ov, regimeId, delta = 0.2) {
-    const npvAt = (k, mult) => runModel(k === "capex" ? { ...inp, capexMult: (inp.capexMult ?? 1) * mult } : { ...inp, [k]: (inp[k] || 0) * mult }, defs, ov, regimeId).kpi.npv;
+    const MK = { capex: "capexMult", price: "priceMult", volume: "volumeMult", varCostPct: "varMult" };
+    const npvAt = (k, mult) => runModel(MK[k] ? { ...inp, [MK[k]]: (inp[MK[k]] ?? 1) * mult } : { ...inp, [k]: (inp[k] || 0) * mult }, defs, ov, regimeId).kpi.npv;
     const base = runModel(inp, defs, ov, regimeId).kpi.npv;
-    return FACTORS.filter(([k]) => k === "capex" ? normInvest(inp).length > 0 : inp[k]).map(([k, name]) => {
+    const P0 = normProducts(inp);
+    const has = k => k === "capex" ? normInvest(inp).length > 0 : k === "price" || k === "volume" ? P0.some(p => p.price * p.volume > 0) : k === "varCostPct" ? P0.some(p => p.varCostPct > 0) : inp[k];
+    return FACTORS.filter(([k]) => has(k)).map(([k, name]) => {
       const lo = npvAt(k, 1 - delta), hi = npvAt(k, 1 + delta);
       // порог: множитель в [0; 3], где NPV меняет знак относительно базы
       let threshold = null;
@@ -326,6 +347,6 @@
     }).sort((a, b) => b.spread - a.spread);
   }
 
-  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, buildLoans, normInvest, suggestInjections, REGIMES, REGIME_NAMES, FACTORS };
+  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, buildLoans, normInvest, normProducts, suggestInjections, REGIMES, REGIME_NAMES, FACTORS };
   if (typeof module !== "undefined") module.exports = api; else root.FinModel = api;
 })(this);

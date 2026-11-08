@@ -57,3 +57,5 @@ table.rep td{padding:6px 8px}
 .tagA{font-size:10px;padding:0 6px;border-radius:999px;border:1px solid var(--acc);color:var(--acc)}
 details.gl{border-bottom:1px solid var(--line);padding:8px 0}details.gl summary{cursor:pointer;font-weight:600;font-size:14px}details.gl p{margin:6px 0;font-size:14px}
 .box p{margin:6px 0;font-size:14px;line-height:1.45}
+
+table.pt{width:100%}table.pt td,table.pt th{padding:6px 6px}table.pt td:first-child,table.pt th:first-child{white-space:normal;position:static}

@@ -1,0 +1,18 @@
+const {JSDOM}=require('jsdom');const fs=require('fs');const html=fs.readFileSync(__dirname+'/../www/index.html','utf8');
+let fail=0;const ok=(n,c)=>{if(!c)fail++;console.log((c?'OK  ':'FAIL')+' '+n);};
+const w=new JSDOM(html,{runScripts:'dangerously',url:'https://p.test/',beforeParse(win){Object.defineProperty(win,'innerWidth',{value:380,configurable:true});}}).window,d=w.document;
+w.addEventListener('error',e=>{fail++;console.log('ERR',e.message)});
+ok('coffee: 3 products',d.querySelectorAll('#prodEd [data-prod]').length===3);
+const rev0=w._R.months[11].rev;
+const r=d.querySelectorAll('#prodEd [data-prod]')[1];const v=r.querySelector('[data-fk=volume]');v.value='2600';v.dispatchEvent(new w.Event('change',{bubbles:true}));
+ok('volume change raises revenue',w._R.months[11].rev>rev0);
+d.querySelector('#tabs button[data-t=pnl]').click();ok('product margin table',/Маржа по продуктам/.test(d.getElementById('out').textContent));
+const tm=d.getElementById('f_terminalMode');const npv0=w._R.kpi.npv;tm.value='book';tm.dispatchEvent(new w.Event('change',{bubbles:true}));
+ok('terminal value raises NPV',w._R.kpi.npv>npv0&&w._R.kpi.terminalValue>0);
+d.querySelector('[data-padd]').click();ok('product added',d.querySelectorAll('#prodEd [data-prod]').length===4);
+d.querySelector('[data-rmp="3"]').click();ok('product removed',d.querySelectorAll('#prodEd [data-prod]').length===3);
+const old={format:'biz-calc-project',schema:1,id:'o3',name:'Старый продукт',form:{price:'380',volume:'3300',varCostPct:'33',horizon:'36',startYear:'2026',season:'Без сезонности'},factors:[],tows:{}};
+d.getElementById('pImp').click();d.getElementById('iT').value=JSON.stringify(old);d.getElementById('iOk').click();
+ok('old price/volume migrated',w.eval('FIN.products.length')===1&&w.eval('FIN.products[0].price')===380&&w.eval('FIN.products[0].varCostPct')===33);
+ok('terminal default none',d.getElementById('f_terminalMode').value==='none');
+console.log(fail?fail+' FAILED':'ALL PASSED');
