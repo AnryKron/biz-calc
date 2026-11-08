@@ -37,9 +37,54 @@
     return { pay, rows };
   }
 
+  // Кредиты на горизонте: [{month (1..H), amount, ratePct, termMonths, type:'ANN'|'DIFF', graceMonths}]
+  // Выдача — в месяце month; платежи — с того же месяца (как в loanSchedule); в отсрочку платятся только проценты.
+  function normLoans(inp) {
+    if (Array.isArray(inp.loans)) return inp.loans.filter(l => l && l.amount > 0);
+    return inp.loanAmount > 0 ? [{ month: 1, amount: inp.loanAmount, ratePct: inp.loanRate || 0, termMonths: inp.loanTerm || 1, type: "ANN", graceMonths: 0 }] : [];
+  }
+  function buildLoans(inp, H) {
+    const rows = Array.from({ length: H }, () => ({ interest: 0, principal: 0, draw: 0, balance: 0 }));
+    const pays = [];
+    for (const l of normLoans(inp)) {
+      const s = Math.max(0, Math.min(H - 1, (l.month || 1) - 1)), n = Math.max(1, Math.round(l.termMonths || 1));
+      const g = Math.min(n - 1, Math.max(0, Math.round(l.graceMonths || 0))), i = (l.ratePct || 0) / 100 / 12;
+      let bal = l.amount, pay = 0;
+      rows[s].draw += l.amount;
+      for (let k = 0; k < n && s + k < H; k++) {
+        const t = s + k, interest = bal * i;
+        let principal = 0;
+        if (k >= g) {
+          const left = n - k;
+          if (l.type === "DIFF") principal = l.amount / (n - g);
+          else { if (k === g) pay = i === 0 ? bal / left : bal * i / (1 - Math.pow(1 + i, -left)); principal = pay - interest; }
+          principal = Math.min(principal, bal);
+        }
+        bal -= principal;
+        rows[t].interest += interest; rows[t].principal += principal;
+      }
+      pays.push({ month: s + 1, amount: l.amount, pay: l.type === "DIFF" ? null : pay });
+    }
+    let b = 0; for (const r of rows) { b += r.draw - r.principal; r.balance = b; }
+    return { rows, pays, pay: pays.length === 1 ? pays[0].pay : null };
+  }
+
   // ---------- Основной расчёт ----------
   // inp: см. DEFAULT_INPUT на странице. defs/overrides — справочник M0.
+  // Кредитная линия меняет проценты → расходы → налоги → остаток денег. Считаем итерациями до сходимости.
   function runModel(inp, defs, overrides, regimeId) {
+    let li = null, res = null;
+    for (let pass = 0; pass < 6; pass++) {
+      res = core(inp, defs, overrides, regimeId, li);
+      const n = res._lineIntY;
+      if (li && n.every((v, k) => Math.abs(v - li[k]) < 1)) break;
+      if (!li && n.every(v => v === 0)) break;
+      li = n;
+    }
+    return res;
+  }
+
+  function core(inp, defs, overrides, regimeId, lineIntY) {
     const H = inp.horizon, Y = Math.ceil(H / 12);
     const lag = Math.round((inp.delayDays || 0) / 30);
     const season = inp.season && inp.season.length === 12 ? inp.season : Array(12).fill(1);
@@ -61,7 +106,7 @@
     }
     for (let t = 0; t < H; t++) if (t + lag < H) M[t + lag].cashIn += M[t].rev; // поступления с отсрочкой
     const unpaidAR = sum(M.slice(H - lag).map(m => m.rev)); // дебиторка на конец горизонта
-    const loan = loanSchedule(inp.loanAmount || 0, inp.loanRate || 0, inp.loanTerm || 1, H);
+    const loan = buildLoans(inp, H);
 
     // 2. Налоги по календарным годам (кассовый метод: доход = поступления)
     const years = [], tail = { tax: 0, vat: 0, ip: 0, payroll: 0 };
@@ -72,7 +117,7 @@
       const P = E.makeParams(defs, year, overrides);
       const income = sum(ms.map(m => m.cashIn));
       const capexY = yi === 0 ? (inp.capex || 0) : 0;
-      const interestY = sum(ms.map(m => loan.rows[m.t].interest));
+      const interestY = sum(ms.map(m => loan.rows[m.t].interest)) + (lineIntY ? lineIntY[yi] || 0 : 0);
       const opEx = sum(ms.map(m => m.varCost + m.fixed)) + interestY;
       // расходы для налога: на УСН/АУСН «Д−Р» ОС списываются при оплате (упрощённо), на ОСНО — амортизация
       const expTax = regimeId === "OSNO" ? opEx + sum(ms.map(m => m.amort)) : opEx + (["USN15", "AUSN20"].includes(regimeId) ? capexY : 0);
@@ -120,7 +165,12 @@
     L.taxPay += tail.tax; L.vatPay += tail.vat; L.ipPay += tail.ip; L.payrollPay += tail.payroll;
 
     // 3. БДДС
-    let cash = 0, cum = 0, cumD = 0, minCum = 0;
+    const inj = Array(H).fill(0);
+    inj[0] += inp.ownFunds || 0;
+    for (const x of inp.injections || []) if (x && x.amount > 0) inj[Math.max(0, Math.min(H - 1, (x.month || 1) - 1))] += x.amount;
+    const line = inp.creditLine || {}, lineOn = !!line.on, lim = line.limit || 0, lr_ = (line.ratePct || 0) / 100 / 12, reserve = line.reserve || 0;
+    let cash = 0, cum = 0, cumD = 0, minCum = 0, lb = 0, lineMax = 0;
+    const lineIntYNew = Array(Y).fill(0);
     const rm = Math.pow(1 + (inp.discountRatePct || 0) / 100, 1 / 12) - 1;
     for (const m of M) {
       const lr = loan.rows[m.t];
@@ -128,11 +178,21 @@
       m.opOut = m.varCost + m.fixed + m.salaries + m.payrollPay + m.taxPay + m.vatPay + m.ipPay;
       m.opCF = m.opIn - m.opOut;
       m.invCF = m.t === 0 ? -(inp.capex || 0) : 0;
-      m.finCF = (m.t === 0 ? (inp.ownFunds || 0) + (inp.loanAmount || 0) : 0) - lr.principal - lr.interest;
-      m.interest = lr.interest; m.principal = lr.principal;
+      m.injection = inj[m.t]; m.loanDraw = lr.draw; m.interest = lr.interest; m.principal = lr.principal; m.loanBal = lr.balance;
+      m.cashStart = cash;
+      cash += m.opCF + m.invCF + m.injection + m.loanDraw - m.principal - m.interest;
+      // кредитная линия (овердрафт): проценты на остаток долга, выборка до неснижаемого остатка, погашение из излишка
+      m.lineInt = lb * lr_; cash -= m.lineInt; lineIntYNew[m.yi] += m.lineInt;
+      m.lineDraw = 0; m.lineRepay = 0;
+      if (lineOn) {
+        if (cash < reserve && lb < lim) { m.lineDraw = Math.min(reserve - cash, lim - lb); lb += m.lineDraw; cash += m.lineDraw; }
+        else if (cash > reserve && lb > 0) { m.lineRepay = Math.min(lb, cash - reserve); lb -= m.lineRepay; cash -= m.lineRepay; }
+      }
+      m.lineBal = lb; lineMax = Math.max(lineMax, lb);
+      m.finCF = m.injection + m.loanDraw - m.principal - m.interest - m.lineInt + m.lineDraw - m.lineRepay;
+      m.cashEnd = cash;
       m.projectCF = m.opCF + m.invCF; // поток проекта для NPV (без финансирования)
       if (m.t === H - 1) m.projectCF += unpaidAR; // ASSUMPTION: дебиторка на конец горизонта будет получена
-      m.cashStart = cash; cash += m.opCF + m.invCF + m.finCF; m.cashEnd = cash;
       cum += m.projectCF; m.cumCF = cum; minCum = Math.min(minCum, cum);
       m.disc = m.projectCF / Math.pow(1 + rm, m.t + 1); cumD += m.disc; m.cumDisc = cumD;
     }
@@ -150,6 +210,8 @@
     const fcMonth = sum(y1.map(m => m.fixed + m.salaries + m.payroll)) / y1.length;
     const marginShare = 1 - (inp.varCostPct || 0) / 100;
     const beRev = marginShare > 0 ? fcMonth / marginShare : null;
+    const revY1 = sum(y1.map(m => m.rev)) / y1.length;
+    const safety = beRev != null && revY1 > 0 ? (revY1 - beRev) / revY1 * 100 : null; // запас финансовой прочности, % (1-й год)
 
     // 5. БДР по годам
     const pnl = years.map((y, yi) => {
@@ -158,21 +220,25 @@
       const netRev = rev - vat, varC = sum(ms.map(m => m.varCost)), margin = netRev - varC;
       const fixed = sum(ms.map(m => m.fixed)), sal = sum(ms.map(m => m.salaries)), pay = y.r.payroll, ip = y.r.ipContrib;
       const ebitda = margin - fixed - sal - pay - ip, amort = sum(ms.map(m => m.amort)), ebit = ebitda - amort;
-      const interest = sum(ms.map(m => m.interest)), ebt = ebit - interest, tax = y.r.tax, net = ebt - tax;
+      const interest = sum(ms.map(m => m.interest + m.lineInt)), ebt = ebit - interest, tax = y.r.tax, net = ebt - tax;
+      const debtService = sum(ms.map(m => m.interest + m.principal + m.lineInt));
+      const dscr = debtService > 0 ? (ebitda - tax) / debtService : null; // покрытие долга: (EBITDA − налог) / платежи по долгу
       return { year: y.year, rev, vat, netRev, varC, margin, fixed, sal, pay, ip, ebitda, amort, ebit, interest, ebt, tax, net,
-        ros: netRev ? net / netRev * 100 : 0, burden: y.r.burden, burdenPct: y.r.burdenPct, cashIn: y.income };
+        ros: netRev ? net / netRev * 100 : 0, dscr, debtService, burden: y.r.burden, burdenPct: y.r.burdenPct, cashIn: y.income };
     });
 
     return {
       regimeId, regimeName: REGIME_NAMES[regimeId], available: !unavailable, unavailable,
-      months: M, pnl, years: years.map(y => ({ year: y.year, income: y.income, tax: y.r.tax, vat: y.r.vat, ip: y.r.ipContrib, payroll: y.r.payroll, lines: y.r.lines })),
+      _lineIntY: lineIntYNew, months: M, pnl, years: years.map(y => ({ year: y.year, income: y.income, tax: y.r.tax, vat: y.r.vat, ip: y.r.ipContrib, payroll: y.r.payroll, lines: y.r.lines })),
       kpi: {
         npv, irrMultiple: signCh > 1, irrYear: irrM == null ? null : (Math.pow(1 + irrM, 12) - 1) * 100,
         pi: pvNeg ? pvPos / pvNeg : null, pp: firstPos(m => m.cumCF), dpp: firstPos(m => m.cumDisc),
         maxNeed: -minCum, cashGapMonth: gap ? gap.t + 1 : null, cashMin: Math.min(...M.map(m => m.cashEnd)),
         beRevMonth: beRev, beUnitsMonth: beRev && inp.price ? beRev / inp.price : null,
         totalTaxes: sum(years.map(y => y.r.tax + y.r.vat + y.r.ipContrib + y.r.payroll)),
-        netTotal: sum(pnl.map(p => p.net)), loanPay: loan.pay, unpaidAR
+        netTotal: sum(pnl.map(p => p.net)), loanPay: loan.pay, loans: loan.pays, unpaidAR, safety,
+        injectionsTotal: sum(inj), lineMax, lineBalEnd: lb, interestTotal: sum(M.map(m => m.interest + m.lineInt)),
+        dscrMin: pnl.some(p => p.dscr != null) ? Math.min(...pnl.filter(p => p.dscr != null).map(p => p.dscr)) : null
       }
     };
   }
@@ -202,6 +268,21 @@
     return null;
   }
 
+  // Подбор вложений собственника: в каждый месяц, где остаток ниже неснижаемого, добавить недостающее.
+  // Вложения не меняют налоги, поэтому жадный подбор даёт минимальные суммы в самые поздние возможные месяцы.
+  function suggestInjections(inp, defs, ov, regimeId, reserve = 0) {
+    const out = (inp.injections || []).map(x => ({ ...x }));
+    for (let k = 0; k < 120; k++) {
+      const r = runModel({ ...inp, injections: out, creditLine: { ...(inp.creditLine || {}), on: false } }, defs, ov, regimeId);
+      const m = r.months.find(x => x.cashEnd < reserve - 0.5);
+      if (!m) break;
+      const need = Math.ceil((reserve - m.cashEnd) / 1000) * 1000; // округляем до 1 000 ₽ вверх
+      const ex = out.find(x => x.month === m.t + 1 && x.auto);
+      if (ex) ex.amount += need; else out.push({ month: m.t + 1, amount: need, auto: true });
+    }
+    return out.sort((a, b) => a.month - b.month);
+  }
+
   // Сравнение режимов по всему горизонту
   function compareOverHorizon(inp, defs, ov) {
     return REGIMES.map(id => runModel(inp, defs, ov, id))
@@ -229,6 +310,6 @@
     }).sort((a, b) => b.spread - a.spread);
   }
 
-  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, REGIMES, REGIME_NAMES, FACTORS };
+  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, buildLoans, suggestInjections, REGIMES, REGIME_NAMES, FACTORS };
   if (typeof module !== "undefined") module.exports = api; else root.FinModel = api;
 })(this);

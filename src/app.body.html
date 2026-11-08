@@ -1,0 +1,19 @@
+<main>
+<h1>Бизнес-калькулятор</h1><div class="small"><a href="params.html">Параметры (справочник)</a></div>
+<div class="small">v0.3: проекты + модель + SWOT/PEST + сценарии · помесячно · ИП · налоги — движок v0.1, параметры M0 (НК РФ ред. с 01.10.2026)</div>
+<div class="card"><h2>Проект</h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="projSel" style="flex:1;min-width:160px"></select><input type="text" id="projName" style="flex:1;min-width:160px" placeholder="Название проекта"></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" id="pNew">Новый</button><button class="btn" id="pDup">Копия</button><button class="btn" id="pDel" style="color:var(--bad)">Удалить</button><button class="btn" id="pExp">Экспорт</button><button class="btn" id="pImp">Импорт</button></div>
+<div id="pStatus" class="small" style="margin-top:6px"></div>
+<div class="small" style="margin-top:10px">Новый проект из шаблона:</div><div class="seg" id="presets" style="margin-top:4px"></div></div>
+<div class="sheet" id="sh"><div class="box" id="shBox"></div></div>
+<div class="card" id="form"></div>
+<div class="card">
+ <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span class="small">Режим:</span><select id="regime" style="width:auto"></select><span id="regNote" class="small"></span></div>
+ <div class="tabs" id="tabs"></div><div id="out"></div>
+</div>
+<div class="card"><h2>Параметры расчёта</h2><div class="small">Справочник ставок и лимитов — на экране <a href="params.html">«Параметры»</a>; его правки применяются ко всем проектам. Ниже — правки только для этого проекта (вставьте экспорт JSON из «Параметров»).</div>
+<textarea id="m0json" rows="3" style="margin-top:8px;font:12px ui-monospace,Menlo,monospace" placeholder='{"format":"biz-calc-params", …}'></textarea>
+<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="applyM0">Применить</button><button class="btn" id="clearM0">Сбросить на закон</button><span id="m0msg" class="small"></span></div></div>
+<div class="card small"><b>Допущения v0.1.</b> Проект стартует в январе года начала. Выручка = цена × объём × рост × сезонность; первые месяцы — выход на мощность с 30%. Налоговый учёт кассовый (доход = поступления). Налоги считаются за календарный год и платятся по срокам: УСН и НДФЛ ИП — авансы в апреле, июле, октябре, за год — в апреле следующего года; НДС — тремя частями после квартала; НПД и АУСН — ежемесячно; патент — в декабре; взносы ИП — фиксированные в декабре, 1% — в июле следующего года; за работников — в следующем месяце. Платежи после конца горизонта перенесены в последний месяц. На УСН и АУСН «Д−Р» оборудование списывается в расходы в год покупки, на ОСНО — через амортизацию. Дебиторская задолженность на конец горизонта считается полученной (в потоке проекта). NPV — по потоку проекта без кредита (операционный + инвестиционный), с дисконтированием с 1-го месяца. <b>Модель — инструмент оценки, а не бизнес-план для банка и не налоговая консультация.</b></div>
+</main>

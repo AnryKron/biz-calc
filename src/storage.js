@@ -29,6 +29,15 @@
     p.tows = Object.assign({ SO: "", ST: "", WO: "", WT: "" }, p.tows || {});
     if (typeof p.overrides !== "object" || !p.overrides) p.overrides = {};
     for (const [k, v] of Object.entries(p.overrides)) if (!v || typeof v.value !== "number") { delete p.overrides[k]; w.push(`Правка параметра ${k} некорректна и пропущена.`); }
+    if (p.fin != null) {
+      const f = p.fin;
+      if (typeof f !== "object") { delete p.fin; w.push("Данные о финансировании повреждены — пропущены."); }
+      else {
+        f.loans = (Array.isArray(f.loans) ? f.loans : []).filter(l => l && typeof l.amount === "number" && l.amount > 0);
+        f.injections = (Array.isArray(f.injections) ? f.injections : []).filter(x => x && typeof x.amount === "number" && x.amount > 0);
+        f.line = Object.assign({ on: false, limit: 0, ratePct: 0, reserve: 0 }, f.line || {});
+      }
+    }
     if (!p.id) p.id = uid();
     return { project: p, warnings: w };
   }
