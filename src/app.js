@@ -138,6 +138,27 @@ $("form").addEventListener("click",e=>{const t=e.target;if(!t.closest("#prodEd")
  if(t.dataset.padd)FIN.products.push({name:"",price:1000,volume:100,varCostPct:30});else if(t.dataset.rmp!=null)FIN.products.splice(+t.dataset.rmp,1);else return;
  renderProd();calc();scheduleSave();});
 
+// ---------- Отчёт (PDF / Excel) ----------
+function loadScript(src){return new Promise((ok,bad)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>bad(new Error("не удалось загрузить "+src));document.head.appendChild(s);});}
+async function pdfLib(){if(!window.jspdf)await loadScript("lib/jspdf.umd.min.js");if(!window.jspdf.jsPDF.API.autoTable){if(!window.applyPlugin)await loadScript("lib/jspdf.plugin.autotable.min.js");window.applyPlugin&&window.applyPlugin(window.jspdf.jsPDF);}
+ if(!window.BC_FONTS)await loadScript("lib/fonts.js");return{jsPDF:window.jspdf.jsPDF,fontRegular:BC_FONTS.r,fontBold:BC_FONTS.b};}
+function toB64(u8){let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);}
+async function saveBinary(name,u8,mime){
+ if(NATIVE){const P=window.Capacitor.Plugins;const r=await P.Filesystem.writeFile({path:name,data:toB64(u8),directory:"CACHE"});await P.Share.share({title:name,url:r.uri,dialogTitle:"Сохранить отчёт"});return"shared";}
+ const url=URL.createObjectURL(new Blob([u8],{type:mime}));const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);return"downloaded";}
+function reportData(){const id=window._id;return Report.build({name:CUR?CUR.name:"Проект",date:new Date().toLocaleDateString("ru-RU"),R:window._R,cmp:window._cmp,inp,fin:FIN,factors:FACTORS,tows:TOWS,
+ scen:A.scenarios(inp,FACTORS,DEFS,EFF(),id),sens:F.sensitivity(inp,DEFS,EFF(),id),sysVersion:SYS_VERSION});}
+function openReport(){saveNow();sheet(`<h3>Отчёт по проекту «${esc(CUR.name)}»</h3><div class="small">В отчёт попадут выводы, ключевые показатели, график, исходные данные, сравнение налоговых режимов, БДР, БДДС, чувствительность, сценарии, SWOT и PEST — для режима «${esc(window._R.regimeName)}».</div>
+ <div style="display:grid;gap:8px;margin-top:12px"><button class="btn pri" id="rPdf">PDF — для чтения и отправки</button><button class="btn" id="rXls">Excel (.xlsx) — таблицы для расчётов</button></div><div id="rM" class="small" style="margin-top:8px"></div><div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn" id="rC">Закрыть</button></div>`);
+ const fname=ext=>(CUR.name||"Проект").replace(/[\\/:*?"<>|]/g,"_")+" — отчёт."+ext;
+ const run=async(kind)=>{const m=$("rM");m.textContent=kind==="pdf"?"Готовлю PDF…":"Готовлю Excel…";
+  try{const D=reportData();let u8,mime,ext;
+   if(kind==="pdf"){const lib=await pdfLib();u8=new Uint8Array(Report.toPdf(D,lib));mime="application/pdf";ext="pdf";}
+   else{u8=Report.toXlsx(D);mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";ext="xlsx";}
+   const how=await saveBinary(fname(ext),u8,mime);m.textContent=how==="shared"?"Готово — выберите, куда сохранить или отправить.":"Файл скачан.";}
+  catch(e){m.innerHTML=`<span class="err">Не получилось: ${esc(e.message||e)}</span>`;}};
+ $("rPdf").onclick=()=>run("pdf");$("rXls").onclick=()=>run("xlsx");$("rC").onclick=closeSheet;}
+
 // ---------- Справочник ----------
 const qi=k=>GLOSSARY[k]?`<button class="qi" data-qi="${k}" title="Что это?" aria-label="Что это?">?</button>`:"";
 function gBody(k){const g=GLOSSARY[k];return`${g.s?`<p>${esc(g.s)}</p>`:""}${g.f?`<p><b>Как считается.</b> ${esc(g.f)}</p>`:""}${g.i?`<p><b>Как читать.</b> ${esc(g.i)}</p>`:""}${g.c?`<p class="small"><b>Осторожно.</b> ${esc(g.c)}</p>`:""}`;}
@@ -320,6 +341,7 @@ $("pNew").onclick=()=>{saveNow();newFromTemplate("Кофейня");$("projName")
 $("pDup").onclick=()=>{saveNow();const c=STORE.duplicate(CUR.id);if(c)openProject(c);};
 $("pDel").onclick=()=>sheet(`<h3>Удалить проект «${esc(CUR.name)}»?</h3><div class="small">Это нельзя отменить. Если проект может понадобиться — сначала сделайте экспорт.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn" id="dC">Отмена</button><button class="btn pri" id="dOk" style="background:var(--bad);border-color:var(--bad)">Удалить</button></div>`)
  ||($("dC").onclick=closeSheet,$("dOk").onclick=()=>{clearTimeout(saveT);STORE.remove(CUR.id);closeSheet();const L=STORE.list();if(L.length)openProject(STORE.load(L[0].id));else newFromTemplate("Кофейня");});
+$("pRep").onclick=openReport;
 $("pExp").onclick=()=>{saveNow();const txt=PS.toJSON(CUR);sheet(`<h3>Экспорт проекта</h3><div class="small">${NATIVE?"«Сохранить файл» откроет меню: Файлы, Диск, мессенджер. Или ":""}Скопируйте и сохраните в файл <code>${esc(CUR.name)}.json</code> — его можно открыть через «Импорт» на другом устройстве или в Android-версии.</div><textarea id="xT" rows="12" readonly style="margin-top:8px;font:12px ui-monospace,Menlo,monospace">${esc(txt)}</textarea><div id="xM" class="small"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" id="xC">Закрыть</button>${NATIVE?'<button class="btn" id="xSv">Сохранить файл…</button>':""}<button class="btn pri" id="xCp">Копировать</button></div>`);
  if(NATIVE)$("xSv").onclick=async()=>{try{await nativeSave(CUR.name,$("xT").value);$("xM").textContent="Готово.";}catch(e){$("xM").textContent="Не удалось сохранить: "+(e.message||e);}};
  $("xC").onclick=closeSheet;$("xCp").onclick=async()=>{const ta=$("xT");try{await navigator.clipboard.writeText(ta.value);$("xM").textContent="Скопировано.";}catch(e){ta.select();$("xM").textContent="Буфер обмена недоступен — текст выделен, скопируйте вручную.";}};};

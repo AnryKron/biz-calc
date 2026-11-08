@@ -1,0 +1,20 @@
+const fs=require('fs');const F=require('../src/finmodel.js'),A=require('../src/analysis.js'),Rp=require('../src/report.js');
+const h=fs.readFileSync(__dirname+'/../src/params.template.html','utf8');const DEFS=eval(h.match(/const DEFS=(\[[\s\S]*?\n\]);/)[1]);
+const fin={products:[{name:'Кофе и напитки',price:300,volume:3000,varCostPct:25},{name:'Выпечка',price:230,volume:1300,varCostPct:55}],
+ investments:[{name:'Оборудование',month:1,amount:2.5e6,lifeMonths:60},{name:'Ремонт',month:1,amount:1e6,lifeMonths:0}],loans:[{month:1,amount:2e6,ratePct:24,termMonths:36,type:'ANN'}],injections:[{month:3,amount:100000}],line:{on:false}};
+const inp={startYear:2026,horizon:36,growthPct:0.5,rampMonths:6,season:Array(12).fill(1),fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,ownFunds:2e6,discountRatePct:25,physSharePct:100,vatExpSharePct:30,...fin,creditLine:fin.line};
+const factors=[{src:'SWOT',q:'S',text:'Место у метро',weight:5},{src:'SWOT',q:'T',text:'Конкурент & «сеть» <рядом>',weight:4,prob:.4,target:'price',deltaPct:-10},{src:'PEST',q:'T',group:'E',text:'Рост цен на молоко',impact:3,prob:.6,target:'varCostPct',deltaPct:10}];
+const cmp=F.compareOverHorizon(inp,DEFS,{});const R=cmp.find(x=>x.regimeId==='USN6');
+const D=Rp.build({name:'Кофейня «Тест»',date:'08.11.2026',R,cmp,inp,fin,factors,tows:{SO:'Доставка'},scen:A.scenarios(inp,factors,DEFS,{},'USN6'),sens:F.sensitivity(inp,DEFS,{},'USN6'),sysVersion:'тест'});
+fs.writeFileSync('/tmp/report.xlsx',Buffer.from(Rp.toXlsx(D)));
+const {jsPDF}=require('jspdf');const at=require('jspdf-autotable');(at.applyPlugin||at.default?.applyPlugin||(()=>{}))(jsPDF);
+const font=f=>fs.readFileSync(__dirname+'/../node_modules/dejavu-fonts-ttf/ttf/'+f).toString('base64');
+fs.writeFileSync('/tmp/report.pdf',Buffer.from(Rp.toPdf(D,{jsPDF,fontRegular:font('DejaVuSans.ttf'),fontBold:font('DejaVuSans-Bold.ttf')})));
+console.log('conclusions:',D.conclusions.length,'| xlsx',fs.statSync('/tmp/report.xlsx').size,'| pdf',fs.statSync('/tmp/report.pdf').size);
+console.log(JSON.stringify({npv:R.kpi.npv,net:R.kpi.netTotal,cashEnd:R.months[35].cashEnd}));
+const x=fs.readFileSync('/tmp/report.xlsx'),p=fs.readFileSync('/tmp/report.pdf');let bad=0;
+const ok=(n,c)=>{if(!c)bad++;console.log((c?'OK  ':'FAIL')+' '+n);};
+ok('xlsx is zip',x[0]===0x50&&x[1]===0x4b);ok('pdf header',p.slice(0,5).toString()==='%PDF-');ok('conclusions >= 5',D.conclusions.length>=5);
+ok('crc32 known value',Rp.crc32(new TextEncoder().encode('123456789'))===0xCBF43926);
+ok('pnl total = sum of years',Math.abs(D.pnlRows.find(r=>r.n==='Чистая прибыль').v.slice(0,-1).reduce((a,b)=>a+b,0)-D.pnlRows.find(r=>r.n==='Чистая прибыль').v.at(-1))<0.01);
+console.log(bad?bad+' FAILED':'ALL PASSED');if(bad)process.exit(1);

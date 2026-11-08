@@ -14,11 +14,20 @@ html=f'''<!DOCTYPE html>
 {S('finmodel.js')}
 {S('analysis.js')}
 {S('storage.js')}
-{S('glossary.js') if os.path.exists(os.path.join(ROOT,'src','glossary.js')) else ''}
+{S('glossary.js')}
+{S('report.js')}
 {S('app.js')}
 </script></body></html>'''
 os.makedirs(os.path.join(ROOT,'www'),exist_ok=True)
 open(os.path.join(ROOT,'www','index.html'),'w').write(html)
+# библиотеки для PDF: грузятся по требованию, только при выгрузке отчёта
+import base64, shutil
+NM=os.path.join(ROOT,'node_modules'); LIB=os.path.join(ROOT,'www','lib'); os.makedirs(LIB,exist_ok=True)
+shutil.copy(os.path.join(NM,'jspdf','dist','jspdf.umd.min.js'),LIB)
+shutil.copy(os.path.join(NM,'jspdf-autotable','dist','jspdf.plugin.autotable.min.js'),LIB)
+f=lambda n: base64.b64encode(open(os.path.join(NM,'dejavu-fonts-ttf','ttf',n),'rb').read()).decode()
+open(os.path.join(LIB,'fonts.js'),'w').write('window.BC_FONTS={r:"'+f('DejaVuSans.ttf')+'",b:"'+f('DejaVuSans-Bold.ttf')+'"};')
+shutil.copy(os.path.join(NM,'dejavu-fonts-ttf','LICENSE'),os.path.join(LIB,'DejaVu-LICENSE.txt'))
 # экран параметров: только уровень «для всех проектов», ссылка назад
 p=m0
 p=p.replace('<title>M0 · Мастер-данные — прототип</title>','<title>Параметры — Бизнес-калькулятор</title>')
