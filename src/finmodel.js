@@ -43,6 +43,14 @@
     if (Array.isArray(inp.loans)) return inp.loans.filter(l => l && l.amount > 0);
     return inp.loanAmount > 0 ? [{ month: 1, amount: inp.loanAmount, ratePct: inp.loanRate || 0, termMonths: inp.loanTerm || 1, type: "ANN", graceMonths: 0 }] : [];
   }
+  // Инвестиции: [{name, month (1..H), amount, lifeMonths}]; старый формат — capex + lifeMonths на старте.
+  // capexMult — множитель для чувствительности и сценариев.
+  function normInvest(inp) {
+    const k = inp.capexMult ?? 1;
+    const list = Array.isArray(inp.investments) ? inp.investments
+      : (inp.capex > 0 ? [{ name: "Стартовые инвестиции", month: 1, amount: inp.capex, lifeMonths: inp.lifeMonths || 0 }] : []);
+    return list.filter(x => x && x.amount > 0).map(x => ({ ...x, month: Math.max(1, Math.round(x.month || 1)), amount: x.amount * k, lifeMonths: Math.max(0, Math.round(x.lifeMonths || 0)) }));
+  }
   function buildLoans(inp, H) {
     const rows = Array.from({ length: H }, () => ({ interest: 0, principal: 0, draw: 0, balance: 0 }));
     const pays = [];
@@ -101,10 +109,17 @@
       M.push({ t, yi, mi, year: inp.startYear + yi, vol, rev,
         varCost: rev * (inp.varCostPct || 0) / 100, fixed: (inp.fixed || 0) * Math.pow(1 + (inp.fixedIndexPct || 0) / 100, yi),
         salaries: (inp.staff || 0) * salary, salary,
-        amort: inp.capex && inp.lifeMonths && t < inp.lifeMonths ? inp.capex / inp.lifeMonths : 0,
+        amort: 0, invest: 0,
         cashIn: 0, payroll: 0, taxPay: 0, vatPay: 0, ipPay: 0, payrollPay: 0, tax: 0, vat: 0, ipContrib: 0 });
     }
     for (let t = 0; t < H; t++) if (t + lag < H) M[t + lag].cashIn += M[t].rev; // поступления с отсрочкой
+    const INV = normInvest(inp);
+    for (const x of INV) {
+      const s = x.month - 1; if (s >= H) continue;
+      M[s].invest += x.amount;
+      // амортизация линейно с месяца ввода; без срока службы — не амортизируется (напр., ремонт арендованного помещения)
+      if (x.lifeMonths) for (let t = s; t < Math.min(H, s + x.lifeMonths); t++) M[t].amort += x.amount / x.lifeMonths;
+    }
     const unpaidAR = sum(M.slice(H - lag).map(m => m.rev)); // дебиторка на конец горизонта
     const loan = buildLoans(inp, H);
 
@@ -116,7 +131,7 @@
       const ms = M.filter(m => m.yi === yi), year = inp.startYear + yi;
       const P = E.makeParams(defs, year, overrides);
       const income = sum(ms.map(m => m.cashIn));
-      const capexY = yi === 0 ? (inp.capex || 0) : 0;
+      const capexY = sum(ms.map(m => m.invest)); // на УСН/АУСН «Д−Р» — расходом в год оплаты (п. 3 ст. 346.16 — упрощённо)
       const interestY = sum(ms.map(m => loan.rows[m.t].interest)) + (lineIntY ? lineIntY[yi] || 0 : 0);
       const opEx = sum(ms.map(m => m.varCost + m.fixed)) + interestY;
       // расходы для налога: на УСН/АУСН «Д−Р» ОС списываются при оплате (упрощённо), на ОСНО — амортизация
@@ -177,7 +192,7 @@
       m.opIn = m.cashIn;
       m.opOut = m.varCost + m.fixed + m.salaries + m.payrollPay + m.taxPay + m.vatPay + m.ipPay;
       m.opCF = m.opIn - m.opOut;
-      m.invCF = m.t === 0 ? -(inp.capex || 0) : 0;
+      m.invCF = -m.invest;
       m.injection = inj[m.t]; m.loanDraw = lr.draw; m.interest = lr.interest; m.principal = lr.principal; m.loanBal = lr.balance;
       m.cashStart = cash;
       cash += m.opCF + m.invCF + m.injection + m.loanDraw - m.principal - m.interest;
@@ -237,7 +252,8 @@
         beRevMonth: beRev, beUnitsMonth: beRev && inp.price ? beRev / inp.price : null,
         totalTaxes: sum(years.map(y => y.r.tax + y.r.vat + y.r.ipContrib + y.r.payroll)),
         netTotal: sum(pnl.map(p => p.net)), loanPay: loan.pay, loans: loan.pays, unpaidAR, safety,
-        injectionsTotal: sum(inj), lineMax, lineBalEnd: lb, interestTotal: sum(M.map(m => m.interest + m.lineInt)),
+        injectionsTotal: sum(inj), investTotal: sum(M.map(m => m.invest)),
+        bookValueEnd: sum(INV.filter(x => x.month <= H).map(x => x.amount)) - sum(M.map(m => m.amort)), lineMax, lineBalEnd: lb, interestTotal: sum(M.map(m => m.interest + m.lineInt)),
         dscrMin: pnl.some(p => p.dscr != null) ? Math.min(...pnl.filter(p => p.dscr != null).map(p => p.dscr)) : null
       }
     };
@@ -293,9 +309,9 @@
   const FACTORS = [["price", "Цена"], ["volume", "Объём продаж"], ["varCostPct", "Переменные затраты, %"],
     ["fixed", "Постоянные расходы"], ["salary", "Зарплата"], ["capex", "Инвестиции (CAPEX)"]];
   function sensitivity(inp, defs, ov, regimeId, delta = 0.2) {
-    const npvAt = (k, mult) => runModel({ ...inp, [k]: (inp[k] || 0) * mult }, defs, ov, regimeId).kpi.npv;
+    const npvAt = (k, mult) => runModel(k === "capex" ? { ...inp, capexMult: (inp.capexMult ?? 1) * mult } : { ...inp, [k]: (inp[k] || 0) * mult }, defs, ov, regimeId).kpi.npv;
     const base = runModel(inp, defs, ov, regimeId).kpi.npv;
-    return FACTORS.filter(([k]) => inp[k]).map(([k, name]) => {
+    return FACTORS.filter(([k]) => k === "capex" ? normInvest(inp).length > 0 : inp[k]).map(([k, name]) => {
       const lo = npvAt(k, 1 - delta), hi = npvAt(k, 1 + delta);
       // порог: множитель в [0; 3], где NPV меняет знак относительно базы
       let threshold = null;
@@ -310,6 +326,6 @@
     }).sort((a, b) => b.spread - a.spread);
   }
 
-  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, buildLoans, suggestInjections, REGIMES, REGIME_NAMES, FACTORS };
+  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, buildLoans, normInvest, suggestInjections, REGIMES, REGIME_NAMES, FACTORS };
   if (typeof module !== "undefined") module.exports = api; else root.FinModel = api;
 })(this);

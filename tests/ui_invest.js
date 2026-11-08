@@ -1,0 +1,17 @@
+const {JSDOM}=require('jsdom');const fs=require('fs');const html=fs.readFileSync(__dirname+'/../www/index.html','utf8');
+let fail=0;const ok=(n,c)=>{if(!c)fail++;console.log((c?'OK  ':'FAIL')+' '+n);};
+const w=new JSDOM(html,{runScripts:'dangerously',url:'https://i.test/',beforeParse(win){Object.defineProperty(win,'innerWidth',{value:380,configurable:true});}}).window,d=w.document;
+w.addEventListener('error',e=>{fail++;console.log('ERR',e.message)});
+ok('coffee: 2 investment rows',d.querySelectorAll('#finEd [data-inv]').length===2);
+ok('coffee invest total 3.5m',Math.round(w._R.kpi.investTotal)===3500000);
+d.querySelector('[data-fin=addInv]').click();const r=[...d.querySelectorAll('#finEd [data-inv]')].pop();
+const m=r.querySelector('[data-fk=month]');m.value='14';m.dispatchEvent(new w.Event('change',{bubbles:true}));
+const r2=[...d.querySelectorAll('#finEd [data-inv]')].pop();const a=r2.querySelector('[data-fk=amount]');a.value='1 000 000';a.dispatchEvent(new w.Event('change',{bubbles:true}));
+ok('added invest in month 14',Math.round(w._R.months[13].invest)===1000000&&Math.round(w._R.kpi.investTotal)===4500000);
+const n=[...d.querySelectorAll('#finEd [data-inv]')].pop().querySelector('[data-fk=name]');n.value='Вторая кофемашина';n.dispatchEvent(new w.Event('change',{bubbles:true}));
+ok('name kept',w.eval('FIN.investments[2].name')==='Вторая кофемашина');
+d.querySelectorAll('#presets button')[2].click();ok('manufacturing: second line m25',Math.round(w._R.months[24].invest)===4000000);
+const old={format:'biz-calc-project',schema:1,id:'o2',name:'Старый с capex',form:{price:'380',volume:'3300',capex:'3 500 000',lifeMonths:'60',horizon:'36',startYear:'2026',season:'Без сезонности',ownFunds:'2 000 000'},factors:[],tows:{}};
+d.getElementById('pImp').click();d.getElementById('iT').value=JSON.stringify(old);d.getElementById('iOk').click();
+ok('old capex migrated',w.eval('FIN.investments.length')===1&&w.eval('FIN.investments[0].amount')===3500000&&w.eval('FIN.investments[0].lifeMonths')===60);
+console.log(fail?fail+' FAILED':'ALL PASSED');

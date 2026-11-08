@@ -59,6 +59,7 @@
       applied.push({ text: f.text, target: f.target, deltaPct: d * 100 });
     }
     for (const [t, m] of Object.entries(mult)) {
+      if (t === "capex") { out.capexMult = (inp.capexMult ?? 1) * m; continue; } // инвестиции — множителем ко всему списку
       out[t] = (inp[t] || 0) * m;
       if (t === "varCostPct") out[t] = Math.min(100, out[t]);
     }

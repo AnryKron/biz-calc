@@ -11,17 +11,17 @@ const FIELDS=[
  ["Продажи",[["price","Средний чек / цена, ₽"],["volume","Продаж в месяц (на старте мощности)"],["growthPct","Рост продаж, % в месяц"],["rampMonths","Выход на мощность, мес."],["delayDays","Отсрочка оплаты клиентов, дней"],["season","Сезонность","season"]]],
  ["Затраты",[["varCostPct","Переменные затраты, % выручки"],["fixed","Постоянные расходы, ₽/мес (аренда, услуги…)"],["fixedIndexPct","Рост постоянных, % в год"]]],
  ["Персонал",[["staff","Работников, чел."],["salary","Зарплата, ₽/мес (до НДФЛ)"],["salaryIndexPct","Индексация зарплаты, % в год"],["msp","ОКВЭД в перечне льготы МСП","chk"]]],
- ["Инвестиции и финансирование",[["capex","Инвестиции на старте (оборудование, ремонт), ₽"],["lifeMonths","Срок службы оборудования, мес."],["ownFunds","Собственные средства на старте, ₽"]]],
+ ["Инвестиции и финансирование",[["ownFunds","Собственные средства на старте, ₽"]]],
  ["Налоги",[["prevIncome","Доход за год до старта, ₽"],["physSharePct","Доля дохода от физлиц, %"],["vatExpSharePct","Доля расходов с входящим НДС, %"],["psnPotential","Потенциальный доход по патенту, ₽/год"],["usnRegionalIncome","Ставка УСН «Доходы» в регионе, % (пусто — 6)"],["usnRegionalProfit","Ставка УСН «Д−Р» в регионе, % (пусто — 15)"],["resale","Перепродажа товаров","chk"],["ausnRegion","АУСН введена в регионе","chk"]]],
  ["Горизонт и ставка",[["startYear","Год старта","sel",[2026,2027]],["horizon","Горизонт, мес.","sel",[12,24,36,60]],["discountRatePct","Ставка дисконтирования, % годовых"]]],
 ];
 const PRESETS={
- "Кофейня":{fin:{loans:[{month:1,amount:2000000,ratePct:24,termMonths:36,type:"ANN",graceMonths:0}]},startYear:2026,horizon:36,price:380,volume:3300,growthPct:0.5,rampMonths:6,delayDays:0,season:"Кафе (летний спад)",varCostPct:33,fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,capex:3500000,lifeMonths:60,ownFunds:2000000,loanAmount:2000000,loanRate:24,loanTerm:36,prevIncome:0,physSharePct:100,vatExpSharePct:30,psnPotential:1500000,resale:false,ausnRegion:true,discountRatePct:25},
- "Онлайн-услуги, один ИП":{fin:{loans:[]},startYear:2026,horizon:24,price:15000,volume:12,growthPct:2,rampMonths:3,delayDays:15,season:"Без сезонности",varCostPct:10,fixed:25000,fixedIndexPct:5,staff:0,salary:0,salaryIndexPct:0,msp:false,capex:200000,lifeMonths:36,ownFunds:250000,loanAmount:0,loanRate:0,loanTerm:12,prevIncome:0,physSharePct:70,vatExpSharePct:0,psnPotential:800000,resale:false,ausnRegion:true,discountRatePct:20},
- "Мини-производство":{fin:{loans:[{month:1,amount:6000000,ratePct:22,termMonths:48,type:"ANN",graceMonths:0}]},startYear:2026,horizon:60,price:1200,volume:2500,growthPct:1,rampMonths:9,delayDays:45,season:"Без сезонности",varCostPct:48,fixed:350000,fixedIndexPct:6,staff:7,salary:60000,salaryIndexPct:7,msp:true,capex:9000000,lifeMonths:84,ownFunds:9000000,loanAmount:6000000,loanRate:22,loanTerm:48,prevIncome:0,physSharePct:10,vatExpSharePct:70,psnPotential:0,resale:false,ausnRegion:true,discountRatePct:25},
+ "Кофейня":{fin:{investments:[{name:"Оборудование и мебель",month:1,amount:2500000,lifeMonths:60},{name:"Ремонт помещения",month:1,amount:1000000,lifeMonths:0}],loans:[{month:1,amount:2000000,ratePct:24,termMonths:36,type:"ANN",graceMonths:0}]},startYear:2026,horizon:36,price:380,volume:3300,growthPct:0.5,rampMonths:6,delayDays:0,season:"Кафе (летний спад)",varCostPct:33,fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,capex:3500000,lifeMonths:60,ownFunds:2000000,loanAmount:2000000,loanRate:24,loanTerm:36,prevIncome:0,physSharePct:100,vatExpSharePct:30,psnPotential:1500000,resale:false,ausnRegion:true,discountRatePct:25},
+ "Онлайн-услуги, один ИП":{fin:{investments:[{name:"Ноутбук и ПО",month:1,amount:200000,lifeMonths:36}],loans:[]},startYear:2026,horizon:24,price:15000,volume:12,growthPct:2,rampMonths:3,delayDays:15,season:"Без сезонности",varCostPct:10,fixed:25000,fixedIndexPct:5,staff:0,salary:0,salaryIndexPct:0,msp:false,capex:200000,lifeMonths:36,ownFunds:250000,loanAmount:0,loanRate:0,loanTerm:12,prevIncome:0,physSharePct:70,vatExpSharePct:0,psnPotential:800000,resale:false,ausnRegion:true,discountRatePct:20},
+ "Мини-производство":{fin:{investments:[{name:"Производственная линия",month:1,amount:7500000,lifeMonths:84},{name:"Подготовка цеха",month:1,amount:1500000,lifeMonths:0},{name:"Вторая линия",month:25,amount:4000000,lifeMonths:84}],loans:[{month:1,amount:6000000,ratePct:22,termMonths:48,type:"ANN",graceMonths:0}]},startYear:2026,horizon:60,price:1200,volume:2500,growthPct:1,rampMonths:9,delayDays:45,season:"Без сезонности",varCostPct:48,fixed:350000,fixedIndexPct:6,staff:7,salary:60000,salaryIndexPct:7,msp:true,capex:9000000,lifeMonths:84,ownFunds:9000000,loanAmount:6000000,loanRate:22,loanTerm:48,prevIncome:0,physSharePct:10,vatExpSharePct:70,psnPotential:0,resale:false,ausnRegion:true,discountRatePct:25},
 };
 let OVR={},tab="sum",regime="AUTO",inp={};
-const FIN0=()=>({loans:[],injections:[],line:{on:false,limit:1000000,ratePct:26,reserve:0}});let FIN=FIN0();
+const FIN0=()=>({investments:[],loans:[],injections:[],line:{on:false,limit:1000000,ratePct:26,reserve:0}});let FIN=FIN0();
 const DEFAULT=PRESETS["Кофейня"];
 function buildForm(){
  $("form").innerHTML="<h2>Данные проекта</h2>"+FIELDS.map(([g,fs],i)=>`<details class="g" ${i<2?"open":""}><summary>${g}</summary><div class="grid" style="margin-top:8px">`+fs.map(([k,l,t,opts])=>{
@@ -35,8 +35,8 @@ function setForm(p){if(p.fin){FIN=Object.assign(FIN0(),JSON.parse(JSON.stringify
 function readForm(){const o={},bad=[];for(const[,fs]of FIELDS)for(const[k,l,t]of fs){const el=$("f_"+k);
   if(t==="chk")o[k]=el.checked;else if(t==="sel")o[k]=+el.value;else if(t==="season")o.season=SEASONS[el.value];
   else{const v=parse(el.value);if(v!=null&&(isNaN(v)||v<0))bad.push(l);o[k]=v==null||isNaN(v)?null:v;}}
- for(const k of["price","volume","growthPct","rampMonths","delayDays","varCostPct","fixed","fixedIndexPct","staff","salary","salaryIndexPct","capex","lifeMonths","ownFunds","prevIncome","vatExpSharePct","psnPotential","discountRatePct"])if(o[k]==null)o[k]=0;
- if(o.physSharePct==null)o.physSharePct=100;o.staff=Math.round(o.staff);o.loans=FIN.loans;o.injections=FIN.injections;o.creditLine=FIN.line;
+ for(const k of["price","volume","growthPct","rampMonths","delayDays","varCostPct","fixed","fixedIndexPct","staff","salary","salaryIndexPct","ownFunds","prevIncome","vatExpSharePct","psnPotential","discountRatePct"])if(o[k]==null)o[k]=0;
+ if(o.physSharePct==null)o.physSharePct=100;o.staff=Math.round(o.staff);o.investments=FIN.investments;o.loans=FIN.loans;o.injections=FIN.injections;o.creditLine=FIN.line;
  if(o.varCostPct>100)bad.push("переменные затраты больше 100%");
  return{o,bad};}
 function calc(){
@@ -88,7 +88,10 @@ function monthOpts(cur){const H=+($("f_horizon")?.value||36),y0=+($("f_startYear
 const numIn=(k,v,ph="")=>`<input type="text" inputmode="decimal" data-fk="${k}" value="${v==null?"":Number(v).toLocaleString("ru-RU")}" placeholder="${ph}">`;
 function renderFin(){
  const el=$("finEd");if(!el)return;const L=FIN.line;
- el.innerHTML=`<div class="fin"><div class="fh"><b>Кредиты</b>${qi("annuity")}</div>
+ el.innerHTML=`<div class="fin"><div class="fh"><b>Инвестиции</b>${qi("invest")}</div>
+ ${FIN.investments.map((x,i)=>`<div class="frow" data-inv="${i}"><div style="grid-column:1/-1"><label>Что покупаем</label><input type="text" data-fk="name" value="${esc(x.name||"")}" placeholder="Оборудование, ремонт…"></div><div><label>Месяц оплаты</label><select data-fk="month">${monthOpts(x.month)}</select></div><div><label>Сумма, ₽</label>${numIn("amount",x.amount)}</div><div><label>Срок службы, мес. ${qi("amort")}</label>${numIn("lifeMonths",x.lifeMonths,"0 — не амортиз.")}</div><button class="x xw" data-rm="inv:${i}" title="Удалить">✕ удалить</button></div>`).join("")||'<div class="small">Инвестиций нет.</div>'}
+ <button class="add" data-fin="addInv">+ инвестиция</button>
+ <div class="fh" style="margin-top:12px"><b>Кредиты</b>${qi("annuity")}</div>
  ${FIN.loans.map((l,i)=>`<div class="frow" data-loan="${i}"><div><label>Месяц выдачи</label><select data-fk="month">${monthOpts(l.month)}</select></div><div><label>Сумма, ₽</label>${numIn("amount",l.amount)}</div><div><label>Ставка, %</label>${numIn("ratePct",l.ratePct)}</div><div><label>Срок, мес.</label>${numIn("termMonths",l.termMonths)}</div><div><label>Платёж</label><select data-fk="type"><option value="ANN" ${l.type!=="DIFF"?"selected":""}>аннуитет</option><option value="DIFF" ${l.type==="DIFF"?"selected":""}>дифференц.</option></select></div><div><label>Отсрочка тела, мес. ${qi("grace")}</label>${numIn("graceMonths",l.graceMonths||0)}</div><button class="x xw" data-rm="loan:${i}" title="Удалить кредит">✕ удалить</button></div>`).join("")||'<div class="small">Кредитов нет.</div>'}
  <button class="add" data-fin="addLoan">+ кредит</button>
  <div class="fh" style="margin-top:12px"><b>Вложения собственника</b>${qi("injection")}</div>
@@ -100,19 +103,20 @@ function renderFin(){
 }
 function finChanged(rerender){if(rerender)renderFin();calc();scheduleSave();}
 $("form").addEventListener("change",e=>{const t=e.target,ed=t.closest("#finEd");if(!ed)return;
- const k=t.dataset.fk,lo=t.closest("[data-loan]"),ij=t.closest("[data-inj]"),li=t.closest("[data-line]");
- const val=k==="type"?t.value:k==="lineOn"?t.checked:k==="month"?+t.value:(v=>v==null||isNaN(v)?0:Math.max(0,v))(parse(t.value));
- if(lo)FIN.loans[+lo.dataset.loan][k]=val;else if(ij){FIN.injections[+ij.dataset.inj][k]=val;delete FIN.injections[+ij.dataset.inj].auto;}else if(k==="lineOn")FIN.line.on=val;else if(li)FIN.line[k]=val;
+ const k=t.dataset.fk,lo=t.closest("[data-loan]"),ij=t.closest("[data-inj]"),li=t.closest("[data-line]"),iv=t.closest("[data-inv]");
+ const val=k==="name"?t.value:k==="type"?t.value:k==="lineOn"?t.checked:k==="month"?+t.value:(v=>v==null||isNaN(v)?0:Math.max(0,v))(parse(t.value));
+ if(iv)FIN.investments[+iv.dataset.inv][k]=val;else if(lo)FIN.loans[+lo.dataset.loan][k]=val;else if(ij){FIN.injections[+ij.dataset.inj][k]=val;delete FIN.injections[+ij.dataset.inj].auto;}else if(k==="lineOn")FIN.line.on=val;else if(li)FIN.line[k]=val;
  finChanged(k==="lineOn"||!!ij);});
 $("form").addEventListener("click",e=>{const t=e.target;if(!t.closest("#finEd"))return;
  if(t.dataset.qi){showG(t.dataset.qi);return;}
  const a=t.dataset.fin,rm=t.dataset.rm;
- if(a==="addLoan")FIN.loans.push({month:1,amount:1000000,ratePct:22,termMonths:24,type:"ANN",graceMonths:0});
+ if(a==="addInv")FIN.investments.push({name:"",month:1,amount:500000,lifeMonths:60});
+ else if(a==="addLoan")FIN.loans.push({month:1,amount:1000000,ratePct:22,termMonths:24,type:"ANN",graceMonths:0});
  else if(a==="addInj")FIN.injections.push({month:1,amount:100000});
  else if(a==="clearAuto")FIN.injections=FIN.injections.filter(x=>!x.auto);
  else if(a==="suggest"){const before=FIN.injections.length;FIN.injections=F.suggestInjections({...inp,injections:FIN.injections.filter(x=>!x.auto)},DEFS,EFF(),window._id,FIN.line.reserve||0);
    if(!FIN.injections.some(x=>x.auto))status("Разрывов нет — вложения не нужны.");}
- else if(rm){const[kind,i]=rm.split(":");(kind==="loan"?FIN.loans:FIN.injections).splice(+i,1);}
+ else if(rm){const[kind,i]=rm.split(":");(kind==="loan"?FIN.loans:kind==="inv"?FIN.investments:FIN.injections).splice(+i,1);}
  else return;
  finChanged(true);});
 
@@ -144,7 +148,7 @@ function vSum(R){
  `<div class="kpis">${card(fmtM(k.npv),"NPV","npv",k.npv>=0?"good":"badv")}${card(k.irrYear==null?"—":k.irrYear>1000?"> 1000 %":pct(k.irrYear),"IRR, годовых","irr")}${card(pp(k.pp),"Срок окупаемости","pp")}${card(pp(k.dpp),"Дисконт. окупаемость","dpp")}
  ${card(k.pi==null?"—":k.pi.toLocaleString("ru-RU",{maximumFractionDigits:2}),"Индекс доходности PI","pi")}${card(fmtM(k.maxNeed),"Макс. потребность в деньгах","maxNeed")}${card(k.beRevMonth?fmtM(k.beRevMonth):"—","Точка безубыточности, выручка/мес","be")}${card(pct(k.safety),"Запас фин. прочности","safety",k.safety!=null&&k.safety<0?"badv":"")}
  ${card(k.cashGapMonth?k.cashGapMonth+"-й мес.":"нет","Кассовый разрыв","cashGap",k.cashGapMonth?"badv":"good")}${card(fmtM(k.cashMin),"Мин. остаток на счёте","reserve")}${card(k.dscrMin==null?"—":k.dscrMin.toLocaleString("ru-RU",{maximumFractionDigits:2}),"Мин. DSCR","dscr",k.dscrMin!=null&&k.dscrMin<1?"badv":"")}${card(fmtM(k.interestTotal),"Проценты за горизонт","annuity")}
- ${card(fmtM(k.totalTaxes),"Налоги и взносы","burden")}${card(fmtM(k.netTotal),"Чистая прибыль","net")}${card(fmtM(k.injectionsTotal),"Вложения собственника","injection")}${card(FIN.line.on?fmtM(k.lineMax):"выкл.","Макс. долг по линии","creditLine")}</div>`+
+ ${card(fmtM(k.totalTaxes),"Налоги и взносы","burden")}${card(fmtM(k.netTotal),"Чистая прибыль","net")}${card(fmtM(k.investTotal),"Инвестиции за горизонт","invest")}${card(fmtM(k.injectionsTotal),"Вложения собственника","injection")}${card(FIN.line.on?fmtM(k.lineMax):"выкл.","Макс. долг по линии","creditLine")}</div>`+
  chart(R)+`<div class="small">Синяя линия — накопленный поток проекта (без финансирования): где пересекает ноль — окупаемость. Зелёная — остаток денег на счёте с учётом вложений и кредитов: ниже нуля — кассовый разрыв.</div>`;
 }
 
@@ -281,6 +285,7 @@ function refreshList(){const L=STORE.list();$("projSel").innerHTML=L.map(x=>`<op
 function openProject(p){CUR=p;$("projName").value=p.name;FACTORS=p.factors||[];fid=FACTORS.reduce((m,f)=>Math.max(m,f.id||0),0)+1;TOWS=Object.assign({SO:"",ST:"",WO:"",WT:""},p.tows);regime=p.regime||"AUTO";OVR=p.overrides||{};
  FIN=Object.assign(FIN0(),p.fin?JSON.parse(JSON.stringify(p.fin)):{});
  if(!p.fin&&p.form&&parse(p.form.loanAmount)>0)FIN.loans=[{month:1,amount:parse(p.form.loanAmount),ratePct:parse(p.form.loanRate)||0,termMonths:parse(p.form.loanTerm)||12,type:"ANN",graceMonths:0}]; // проекты v0.3
+ if(!p.fin||!Array.isArray(p.fin.investments)){const c=p.form&&parse(p.form.capex);FIN.investments=c>0?[{name:"Стартовые инвестиции",month:1,amount:c,lifeMonths:parse(p.form.lifeMonths)||0}]:[];} // проекты v0.3–v0.4
  renderFin();
  $("m0msg").textContent=Object.keys(OVR).length?"Правок параметров в проекте: "+Object.keys(OVR).length:"";setFormRaw(p.form);refreshList();status();}
 function newFromTemplate(name){clearTimeout(saveT);loadFactors(name);regime="AUTO";OVR={};FIN=FIN0();setForm(PRESETS[name]);const p=PS.makeProject(name,{form:getFormRaw(),factors:FACTORS,tows:TOWS});CUR=p;$("projName").value=p.name;saveNow();}
