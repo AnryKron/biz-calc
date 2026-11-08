@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M0 · Мастер-данные — прототип</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1d2330;--mute:#6b7385;--line:#e3e6ec;--acc:#1f6feb;--ok:#1a7f37;--warn:#b35900;--bad:#c62828;--user:#7a3fe0;--proj:#0a7f83}
+@media (prefers-color-scheme:dark){:root{--bg:#121418;--card:#1c1f26;--ink:#e8eaf0;--mute:#9aa2b3;--line:#2c313b;--acc:#5b9dff;--ok:#4ac26b;--warn:#f0a040;--bad:#ff6b6b;--user:#b58cff;--proj:#3cc6c9}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:12px 14px 10px}
+h1{font-size:17px;margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:7px 12px;font:inherit;cursor:pointer}
+.seg button.on{background:var(--acc);color:#fff}
+input[type=search],input[type=text],textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+main{padding:10px 12px 90px;max-width:760px;margin:0 auto}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
+.grp>h2{font-size:14px;margin:0;padding:10px 14px;background:color-mix(in srgb,var(--acc) 7%,transparent);display:flex;justify-content:space-between;cursor:pointer}
+.p{padding:10px 14px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:2px 10px;cursor:pointer}
+.p:hover{background:color-mix(in srgb,var(--acc) 5%,transparent)}
+.p .t{font-weight:500}
+.p .v{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap}
+.p .m{grid-column:1/-1;font-size:12px;color:var(--mute);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.b{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.b.VERIFIED{color:var(--ok)}.b.SOURCE{color:var(--warn)}.b.UNVERIFIED{color:var(--bad)}.b.FORECAST{color:var(--mute)}.b.USER{color:var(--user)}.b.PROJECT{color:var(--proj)}
+.v.ch-USER{color:var(--user)}.v.ch-PROJECT{color:var(--proj)}
+.ro{opacity:.8;cursor:default}
+.d{display:grid;grid-template-columns:1fr auto;padding:9px 14px;border-top:1px solid var(--line);gap:2px 10px}
+.d .f{grid-column:1/-1;font-size:12px;color:var(--mute);font-family:ui-monospace,Menlo,monospace}
+footer{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:8px 12px;display:flex;gap:8px;justify-content:center}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:9px 14px;font:inherit;cursor:pointer}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.dan{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.sheet.on{display:flex}
+.box{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px;max-height:90vh;overflow:auto}
+.box h3{margin:0 0 4px;font-size:16px}
+.small{font-size:12px;color:var(--mute)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0;font-size:13px}
+.kv b{font-weight:500;color:var(--mute)}
+.msg{font-size:13px;margin:6px 0;padding:6px 10px;border-radius:8px}
+.msg.w{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.msg.e{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+label{display:block;font-size:13px;margin:10px 0 4px;color:var(--mute)}
+.banner{font-size:12px;color:var(--mute);margin:6px 0 0}
+.cnt{font-size:12px;color:var(--mute);font-weight:400}
+</style>
+</head>
+<body>
+<header>
+  <h1>Мастер-данные · параметры расчёта</h1>
+  <div class="row">
+    <div class="seg" id="years"></div>
+    <div class="seg" id="levels">
+      <button data-l="USER" class="on">Для всех проектов</button>
+      <button data-l="PROJECT">Проект «Кофейня»</button>
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px"><input type="search" id="q" placeholder="Поиск: код, название, статья…"></div>
+  <div class="banner" id="banner"></div>
+</header>
+<main id="list"></main>
+<footer>
+  <button class="btn" id="bExport">Экспорт JSON</button>
+  <button class="btn" id="bImport">Импорт</button>
+  <button class="btn dan" id="bResetAll">Сбросить правки</button>
+</footer>
+
+<div class="sheet" id="sh"><div class="box" id="shBox"></div></div>
+
+<script>
+// ---------- Системный справочник (из раздела 5.5 документа, ред. НК РФ с 01.10.2026) ----------
+const SYS_VERSION = "2026-11-08 · НК РФ ч.2 ред. с 01.10.2026; 422-ФЗ ред. 04.08.2026; 17-ФЗ ред. 28.11.2025";
+const YEARS=[2026,2027];
+const G={gen:"Общие",vat:"НДС",usn:"УСН",psn:"ПСН (патент)",npd:"НПД (самозанятые)",ausn:"АУСН",osno:"ОСНО",ins:"Страховые взносы"};
+// [code, title, unit, v2026, v2027, norm, status, min, max]
+const DEFS=[
+["gen.deflator_usn","Коэффициент-дефлятор для УСН","COEF",1.090,null,"приказ МЭР № 734","SOURCE",1,2],
+["gen.mrot","МРОТ","RUB",27093,null,"закон о МРОТ","UNVERIFIED",0],
+["gen.ins_base_limit","Единая предельная база взносов","RUB",2979000,null,"постановление Правительства","UNVERIFIED",0],
+["gen.key_rate","Ключевая ставка ЦБ (для дисконтирования)","%",14,null,"cbr.ru, решение от 23.10.2026","SOURCE",0,100],
+["vat.base","НДС, основная ставка","%",22,22,"п. 3 ст. 164 НК","VERIFIED",0,100],
+["vat.reduced","НДС, льготная ставка","%",10,10,"п. 2 ст. 164 НК","SOURCE",0,100],
+["vat.usn_free_prev_year","Порог освобождения от НДС по доходу прошлого года","RUB",20e6,20e6,"абз. 3 п. 1 ст. 145 НК","VERIFIED",0],
+["vat.usn_free_in_year","Порог освобождения от НДС в течение года","RUB",20e6,20e6,"абз. 3 п. 5 ст. 145 НК","VERIFIED",0],
+["vat.usn5_limit_base","Порог ставки НДС 5% (до индексации)","RUB",250e6,250e6,"пп. 1 п. 8 ст. 164 НК","VERIFIED",0],
+["vat.usn7_limit_base","Порог ставки НДС 7% (до индексации)","RUB",450e6,450e6,"пп. 2 п. 8 ст. 164 НК","VERIFIED",0],
+["usn.rate_income","УСН «Доходы»","%",6,6,"п. 1 ст. 346.20 НК","VERIFIED",0,100],
+["usn.rate_profit","УСН «Доходы − расходы»","%",15,15,"п. 2 ст. 346.20 НК","VERIFIED",0,100],
+["usn.min_tax","Минимальный налог УСН","%",1,1,"п. 6 ст. 346.18 НК","VERIFIED",0,100],
+["usn.income_limit_base","Лимит доходов УСН (до индексации)","RUB",450e6,450e6,"п. 4 ст. 346.13 НК","VERIFIED",0],
+["usn.fixed_assets_base","Лимит ОС УСН (до индексации)","RUB",200e6,200e6,"пп. 16 п. 3 ст. 346.12 НК","VERIFIED",0],
+["usn.staff_max","Средняя численность, не более","PERSONS",130,130,"пп. 15 п. 3 ст. 346.12 НК","VERIFIED",0],
+["psn.rate","ПСН, ставка от потенциального дохода","%",6,6,"п. 1 ст. 346.50 НК","VERIFIED",0,100],
+["psn.income_limit","Лимит доходов ПСН","RUB",20e6,15e6,"пп. 1 п. 6 ст. 346.45 НК","VERIFIED",0],
+["psn.staff_max","Средняя численность, не более","PERSONS",15,15,"п. 5 ст. 346.43 НК","VERIFIED",0],
+["npd.rate_individuals","НПД с доходов от физлиц","%",4,4,"п. 1 ст. 10 422-ФЗ","VERIFIED",0,100],
+["npd.rate_business","НПД с доходов от ИП и юрлиц","%",6,6,"п. 2 ст. 10 422-ФЗ","VERIFIED",0,100],
+["npd.income_limit","Лимит дохода НПД","RUB",2.4e6,2.4e6,"пп. 8 ч. 2 ст. 4 422-ФЗ","VERIFIED",0],
+["npd.deduction","Налоговый вычет НПД (разово)","RUB",10000,10000,"ч. 1 ст. 12 422-ФЗ","VERIFIED",0],
+["ausn.rate_income","АУСН «Доходы»","%",8,8,"ч. 1 ст. 11 17-ФЗ","VERIFIED",0,100],
+["ausn.rate_profit","АУСН «Доходы − расходы»","%",20,20,"ч. 2 ст. 11 17-ФЗ","VERIFIED",0,100],
+["ausn.min_tax","Минимальный налог АУСН","%",3,3,"ч. 4 ст. 12 17-ФЗ","VERIFIED",0,100],
+["ausn.income_limit","Лимит дохода АУСН","RUB",60e6,60e6,"пп. 23 ч. 2 ст. 3 17-ФЗ","VERIFIED",0],
+["ausn.staff_max","Средняя численность, не более","PERSONS",5,5,"пп. 28 ч. 2 ст. 3 17-ФЗ","VERIFIED",0],
+["ausn.injury_fixed","Взносы на травматизм на АУСН","RUB",2959,null,"данные ФНС","UNVERIFIED",0],
+["osno.profit_rate","Налог на прибыль","%",25,25,"п. 1 ст. 284 НК","VERIFIED",0,100],
+["ins.ip_fixed","Фиксированные взносы ИП за себя","RUB",57390,61154,"пп. 1 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.ip_1pct_threshold","Порог дохода для взноса 1%","RUB",300000,300000,"пп. 2 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.ip_1pct_max","Максимум взноса 1%","RUB",321818,342923,"пп. 2 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.tariff_base","Единый тариф в пределах базы","%",30,30,"п. 3 ст. 425 НК","VERIFIED",0,100],
+["ins.tariff_over","Единый тариф сверх базы","%",15.1,15.1,"п. 3 ст. 425 НК","VERIFIED",0,100],
+["ins.msp_rate","Тариф МСП сверх 1,5 МРОТ (приоритетные ОКВЭД)","%",15,15,"п. 2.4, п. 13.3 ст. 427 НК","VERIFIED",0,100],
+["ins.msp_manufacturing_rate","Тариф МСП-обработки сверх 1,5 МРОТ","%",7.6,7.6,"п. 2.5, п. 13.2 ст. 427 НК","VERIFIED",0,100],
+["ins.msp_income_share","Мин. доля дохода льготного ОКВЭД","%",70,70,"п. 13.3 ст. 427 НК","VERIFIED",0,100],
+];
+const NDFL={title:"Шкала НДФЛ (ИП на ОСНО)",text:"13% до 2,4 млн · 15% до 5 млн · 18% до 20 млн · 20% до 50 млн · 22% свыше",norm:"п. 1 ст. 224 НК",status:"VERIFIED"};
+const DERIVED=[
+ ["Лимит доходов УСН","usn.income_limit_base × gen.deflator_usn",v=>v("usn.income_limit_base")*v("gen.deflator_usn"),"RUB"],
+ ["Лимит ОС УСН","usn.fixed_assets_base × gen.deflator_usn",v=>v("usn.fixed_assets_base")*v("gen.deflator_usn"),"RUB"],
+ ["Порог НДС 5%","vat.usn5_limit_base × gen.deflator_usn",v=>v("vat.usn5_limit_base")*v("gen.deflator_usn"),"RUB"],
+ ["Порог НДС 7%","vat.usn7_limit_base × gen.deflator_usn",v=>v("vat.usn7_limit_base")*v("gen.deflator_usn"),"RUB"],
+ ["1,5 МРОТ","1,5 × gen.mrot",v=>1.5*v("gen.mrot"),"RUB"],
+ ["Максимум взносов ИП за себя","ins.ip_fixed + ins.ip_1pct_max",v=>v("ins.ip_fixed")+v("ins.ip_1pct_max"),"RUB"],
+];
+const STATUS_RU={VERIFIED:"сверено",SOURCE:"по источникам",UNVERIFIED:"не сверено",FORECAST:"прогноз",USER:"изменено: все проекты",PROJECT:"изменено: проект"};
+const UNIT_RU={"%":"%",RUB:"₽",COEF:"",PERSONS:"чел."};
+
+// ---------- Состояние ----------
+let year=2026, level="USER", query="", collapsed={};
+const KEY="m0_overrides_v1";
+let OV={USER:{},PROJECT:{}}; // OV[level]["code@year"]={value,comment,at}
+try{const s=localStorage.getItem(KEY); if(s) OV=Object.assign(OV,JSON.parse(s));}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(OV));}catch(e){}}
+
+const byCode=Object.fromEntries(DEFS.map(d=>[d[0],d]));
+function sysVal(code,y){const d=byCode[code];const i=YEARS.indexOf(y);let v=d[3+i];if(v!=null)return{v,forecast:false};
+  for(let j=i-1;j>=0;j--){if(d[3+j]!=null)return{v:d[3+j],forecast:true};}return{v:null,forecast:false};}
+function resolve(code,y){
+  const k=code+"@"+y;
+  if(level==="PROJECT"&&OV.PROJECT[k])return{...OV.PROJECT[k],lvl:"PROJECT"};
+  if(OV.USER[k])return{...OV.USER[k],lvl:"USER"};
+  const s=sysVal(code,y);return{value:s.v,lvl:"SYSTEM",forecast:s.forecast};
+}
+const val=c=>resolve(c,year).value;
+
+function fmt(v,u){if(v==null||isNaN(v))return"—";
+  if(u==="RUB")return v.toLocaleString("ru-RU",{maximumFractionDigits:2})+" ₽";
+  if(u==="COEF")return v.toLocaleString("ru-RU",{minimumFractionDigits:3,maximumFractionDigits:3});
+  return v.toLocaleString("ru-RU",{maximumFractionDigits:2})+(UNIT_RU[u]?" "+UNIT_RU[u]:"");}
+function parseNum(s){s=String(s).replace(/\s/g,"").replace(",",".");if(s==="")return NaN;return Number(s);}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ---------- Рендер ----------
+function render(){
+  document.getElementById("years").innerHTML=YEARS.map(y=>`<button data-y="${y}" class="${y===year?"on":""}">${y}</button>`).join("");
+  document.querySelectorAll("#levels button").forEach(b=>b.classList.toggle("on",b.dataset.l===level));
+  const nU=Object.keys(OV.USER).length,nP=Object.keys(OV.PROJECT).length;
+  document.getElementById("banner").textContent=`Справочник: ${SYS_VERSION}. Правок: для всех — ${nU}, в проекте — ${nP}.`;
+  const q=query.trim().toLowerCase();
+  let html="";
+  for(const g of Object.keys(G)){
+    const items=DEFS.filter(d=>d[0].split(".")[0]===g).filter(d=>!q||(d[0]+" "+d[1]+" "+d[5]).toLowerCase().includes(q));
+    const showNdfl=g==="osno"&&(!q||("ндфл шкала 224").includes(q)||NDFL.title.toLowerCase().includes(q));
+    if(!items.length&&!showNdfl)continue;
+    const ch=items.filter(d=>resolve(d[0],year).lvl!=="SYSTEM").length;
+    html+=`<section class="grp"><h2 data-g="${g}"><span>${G[g]}</span><span class="cnt">${items.length+(showNdfl?1:0)} · изменено ${ch} ${collapsed[g]?"▸":"▾"}</span></h2>`;
+    if(!collapsed[g]){
+      for(const d of items){
+        const r=resolve(d[0],year);
+        const badge=r.lvl==="SYSTEM"?(r.forecast?"FORECAST":d[6]):r.lvl;
+        html+=`<div class="p" data-c="${d[0]}"><div class="t">${esc(d[1])}</div><div class="v ${r.lvl!=="SYSTEM"?"ch-"+r.lvl:""}">${fmt(r.value,d[2])}</div>
+        <div class="m"><span class="b ${badge}">${STATUS_RU[badge]}</span><span>${esc(d[5])}</span><span>· ${d[0]}</span></div></div>`;
+      }
+      if(showNdfl)html+=`<div class="p ro"><div class="t">${NDFL.title}</div><div class="v"></div><div class="m" style="color:var(--ink)">${NDFL.text}</div><div class="m"><span class="b VERIFIED">сверено, кроме 22%</span><span>${NDFL.norm}</span><span>· правка шкалы — в следующей версии</span></div></div>`;
+    }
+    html+=`</section>`;
+  }
+  html+=`<section class="grp"><h2><span>Производные (считаются, не правятся)</span><span class="cnt">${year}</span></h2>`+
+    DERIVED.map(([t,f,fn,u])=>{let x;try{x=fn(val)}catch(e){x=null}return`<div class="d"><div>${t}</div><div class="v">${fmt(x,u)}</div><div class="f">${f}</div></div>`}).join("")+`</section>`;
+  document.getElementById("list").innerHTML=html||"<p class='small'>Ничего не найдено.</p>";
+}
+
+// ---------- Редактирование ----------
+function openEdit(code){
+  const d=byCode[code],k=code+"@"+year,s=sysVal(code,year),r=resolve(code,year);
+  const own=OV[level][k];
+  const box=document.getElementById("shBox");
+  box.innerHTML=`<h3>${esc(d[1])}</h3><div class="small">${code} · ${year} · правка ${level==="USER"?"для всех проектов":"только для проекта «Кофейня»"}</div>
+  <div class="kv"><b>По закону</b><span>${fmt(s.v,d[2])}${s.forecast?" (прогноз — значение прошлого года)":""}</span>
+  <b>Норма</b><span>${esc(d[5])}</span><b>Статус</b><span>${STATUS_RU[d[6]]}</span>
+  <b>Сейчас в расчёте</b><span>${fmt(r.value,d[2])} ${r.lvl!=="SYSTEM"?"("+STATUS_RU[r.lvl]+")":""}</span></div>
+  <label>Новое значение${UNIT_RU[d[2]]?", "+UNIT_RU[d[2]]:""}</label><input type="text" inputmode="decimal" id="eV" value="${own?String(own.value).replace(".",","):""}" placeholder="${s.v!=null?String(s.v).replace(".",","):""}">
+  <label>Почему изменено (обязательно)</label><textarea id="eC" rows="2" placeholder="напр.: региональная ставка УСН в СПб, закон № …">${own?esc(own.comment):""}</textarea>
+  <div id="eMsg"></div>
+  <div class="row" style="margin-top:12px;justify-content:space-between">
+    <button class="btn dan" id="eReset" ${own?"":"disabled"}>Вернуть как в законе</button>
+    <span class="row"><button class="btn" id="eCancel">Отмена</button><button class="btn pri" id="eSave" disabled>Сохранить</button></span>
+  </div>`;
+  const vI=box.querySelector("#eV"),cI=box.querySelector("#eC"),msg=box.querySelector("#eMsg"),sv=box.querySelector("#eSave");
+  function check(){
+    const x=parseNum(vI.value);let m="",ok=true;
+    if(isNaN(x)){ok=false;if(vI.value.trim())m+=`<div class="msg e">Это не число.</div>`;}
+    else{
+      if(d[7]!=null&&x<d[7]){ok=false;m+=`<div class="msg e">Значение меньше допустимого (${d[7]}).</div>`;}
+      if(d[8]!=null&&x>d[8]){ok=false;m+=`<div class="msg e">Значение больше допустимого (${d[8]}).</div>`;}
+      if(s.v&&ok&&(x>2*s.v||x<s.v/2))m+=`<div class="msg w">Отличается от закона больше чем в 2 раза — проверьте, нет ли опечатки (лишний ноль, 6 вместо 0,06).</div>`;
+    }
+    if(!cI.value.trim()){ok=false;}
+    msg.innerHTML=m+(!cI.value.trim()&&!isNaN(x)?`<div class="msg w">Укажите причину изменения.</div>`:"");
+    sv.disabled=!ok;
+  }
+  vI.oninput=check;cI.oninput=check;check();
+  sv.onclick=()=>{OV[level][k]={value:parseNum(vI.value),comment:cI.value.trim(),at:new Date().toISOString()};save();close();render();};
+  box.querySelector("#eReset").onclick=()=>{delete OV[level][k];save();close();render();};
+  box.querySelector("#eCancel").onclick=close;
+  document.getElementById("sh").classList.add("on");vI.focus();
+}
+function close(){document.getElementById("sh").classList.remove("on");}
+
+// ---------- Экспорт / импорт ----------
+function buildExport(){
+  const out={format:"biz-calc-params",version:1,system:SYS_VERSION,exportedAt:new Date().toISOString(),years:{}};
+  for(const y of YEARS){out.years[y]=DEFS.map(d=>{const s=sysVal(d[0],y);const u=OV.USER[d[0]+"@"+y],p=OV.PROJECT[d[0]+"@"+y];
+    const o={code:d[0],title:d[1],unit:d[2],system:s.v,norm:d[5],status:s.forecast?"FORECAST":d[6]};
+    if(u)o.user=u; if(p)o.project=p; return o;});}
+  return JSON.stringify(out,null,2);
+}
+function openExport(){
+  const box=document.getElementById("shBox"),txt=buildExport();
+  box.innerHTML=`<h3>Экспорт справочника</h3><div class="small">Скопируйте JSON и сохраните в файл — он загружается в приложение без пересборки APK.</div>
+  <textarea id="xT" rows="14" style="margin-top:10px;font:12px ui-monospace,Menlo,monospace" readonly>${esc(txt)}</textarea>
+  <div id="xM" class="small"></div>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="xC">Закрыть</button><button class="btn pri" id="xCopy">Копировать</button></div>`;
+  box.querySelector("#xC").onclick=close;
+  box.querySelector("#xCopy").onclick=async()=>{const t=box.querySelector("#xT");try{await navigator.clipboard.writeText(t.value);box.querySelector("#xM").textContent="Скопировано.";}catch(e){t.select();box.querySelector("#xM").textContent="Буфер обмена недоступен — текст выделен, скопируйте вручную.";}};
+  document.getElementById("sh").classList.add("on");
+}
+function openImport(){
+  const box=document.getElementById("shBox");
+  box.innerHTML=`<h3>Импорт правок</h3><div class="small">Вставьте JSON, выгруженный ранее, или выберите файл. Загружаются только правки (user / project); системные значения меняются обновлением справочника.</div>
+  <input type="file" id="iF" accept=".json,application/json" style="margin:10px 0">
+  <textarea id="iT" rows="10" style="font:12px ui-monospace,Menlo,monospace" placeholder='{"format":"biz-calc-params", …}'></textarea>
+  <div id="iM"></div>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="iC">Отмена</button><button class="btn pri" id="iOk">Загрузить</button></div>`;
+  const T=box.querySelector("#iT"),M=box.querySelector("#iM");
+  box.querySelector("#iF").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>T.value=r.result;r.readAsText(f);};
+  box.querySelector("#iC").onclick=close;
+  box.querySelector("#iOk").onclick=()=>{
+    try{const j=JSON.parse(T.value);if(j.format!=="biz-calc-params")throw new Error("Неизвестный формат файла.");
+      let n=0,skip=0;
+      for(const y of Object.keys(j.years||{}))for(const o of j.years[y]){
+        if(!byCode[o.code]){skip++;continue;}
+        if(o.user&&typeof o.user.value==="number"){OV.USER[o.code+"@"+y]=o.user;n++;}
+        if(o.project&&typeof o.project.value==="number"){OV.PROJECT[o.code+"@"+y]=o.project;n++;}
+      }
+      save();render();M.innerHTML=`<div class="msg w" style="color:var(--ok);background:transparent">Загружено правок: ${n}${skip?`, пропущено неизвестных кодов: ${skip}`:""}.</div>`;
+    }catch(e){M.innerHTML=`<div class="msg e">${esc(e.message||"Ошибка чтения JSON.")}</div>`;}
+  };
+  document.getElementById("sh").classList.add("on");
+}
+function openResetAll(){
+  const box=document.getElementById("shBox");
+  box.innerHTML=`<h3>Сбросить правки?</h3><div class="small">Будут удалены правки ${level==="USER"?"для всех проектов":"проекта «Кофейня»"} за все годы. Системные значения не изменятся.</div>
+  <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="rC">Отмена</button><button class="btn pri" id="rOk" style="background:var(--bad);border-color:var(--bad)">Сбросить</button></div>`;
+  box.querySelector("#rC").onclick=close;
+  box.querySelector("#rOk").onclick=()=>{OV[level]={};save();close();render();};
+  document.getElementById("sh").classList.add("on");
+}
+
+// ---------- События ----------
+document.getElementById("years").onclick=e=>{const y=e.target.dataset.y;if(y){year=+y;render();}};
+document.getElementById("levels").onclick=e=>{const l=e.target.dataset.l;if(l){level=l;render();}};
+document.getElementById("q").oninput=e=>{query=e.target.value;render();};
+document.getElementById("list").onclick=e=>{
+  const h=e.target.closest("h2[data-g]");if(h){collapsed[h.dataset.g]=!collapsed[h.dataset.g];render();return;}
+  const p=e.target.closest(".p[data-c]");if(p)openEdit(p.dataset.c);
+};
+document.getElementById("sh").onclick=e=>{if(e.target.id==="sh")close();};
+document.getElementById("bExport").onclick=openExport;
+document.getElementById("bImport").onclick=openImport;
+document.getElementById("bResetAll").onclick=openResetAll;
+render();
+</script>
+</body>
+</html>

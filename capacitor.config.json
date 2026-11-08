@@ -1,0 +1,6 @@
+{
+  "appId": "ru.anrykron.bizcalc",
+  "appName": "Бизнес-калькулятор",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}

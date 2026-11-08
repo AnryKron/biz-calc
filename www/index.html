@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бизнес-калькулятор — прототип v0.3</title><style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1d2330;--mute:#6b7385;--line:#e3e6ec;--acc:#1f6feb;--ok:#1a7f37;--warn:#b35900;--bad:#c62828;--s1:#1f6feb;--s2:#1a7f37}
+@media (prefers-color-scheme:dark){:root{--bg:#121418;--card:#1c1f26;--ink:#e8eaf0;--mute:#9aa2b3;--line:#2c313b;--acc:#5b9dff;--ok:#4ac26b;--warn:#f0a040;--bad:#ff6b6b;--s1:#5b9dff;--s2:#4ac26b}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:860px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 12px calc(40px + env(safe-area-inset-bottom))}h1{font-size:18px;margin:4px 0 2px}h2{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.small{font-size:12px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 12px}@media (max-width:640px){.grid{grid-template-columns:1fr 1fr}}
+label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+input[type=text],select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 9px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0}.chk label{margin:0;color:var(--ink);font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--ink);padding:7px 11px;font:inherit;cursor:pointer}.seg button.on{background:var(--acc);color:#fff}
+details.g{border-top:1px solid var(--line);padding:8px 0}details.g:first-of-type{border-top:0}details.g>summary{cursor:pointer;font-weight:600;font-size:14px;padding:2px 0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media (max-width:640px){.kpis{grid-template-columns:1fr 1fr}}
+.k{background:var(--bg);border-radius:10px;padding:8px 10px}.k b{display:block;font-size:17px;font-variant-numeric:tabular-nums}.k span{font-size:12px;color:var(--mute)}
+.k.good b{color:var(--ok)}.k.badv b{color:var(--bad)}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+tr.sub td{font-weight:600}tr.tot td{font-weight:700;border-top:2px solid var(--line)}td.neg{color:var(--bad)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}.tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}.tabs button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.warn{color:var(--warn);font-size:13px}.err{color:var(--bad);font-size:13px}
+.tor{display:grid;grid-template-columns:150px 1fr;gap:6px 10px;align-items:center;font-size:13px}@media (max-width:480px){.tor{grid-template-columns:100px 1fr}}
+.tb{position:relative;height:22px;background:var(--bg);border-radius:4px}.tb i{position:absolute;top:3px;height:16px;border-radius:3px}.tb .lo{background:var(--bad);opacity:.75}.tb .hi{background:var(--ok);opacity:.75}.tb .mid{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 12px;font:inherit;cursor:pointer}
+svg text{fill:var(--mute);font-size:11px}
+.best{color:var(--ok);font-weight:600}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}.sheet.on{display:flex}
+.box{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px;max-height:90vh;overflow:auto}.box h3{margin:0 0 6px;font-size:16px}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.q{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:8px 0}.q h3{font-size:14px;margin:0 0 6px;display:flex;justify-content:space-between}
+.q.S h3{color:var(--ok)}.q.W h3{color:var(--warn)}.q.O h3{color:var(--acc)}.q.T h3{color:var(--bad)}
+.fr{display:grid;grid-template-columns:1fr 64px 64px;gap:4px 6px;padding:6px 0;border-top:1px dashed var(--line)}.fr:first-of-type{border-top:0}
+.fr .txt{grid-column:1/-1}.fr .lnk{grid-column:1/-1;display:grid;grid-template-columns:1fr 80px 34px;gap:6px}
+.fr select,.fr input{padding:5px 7px;font-size:13px}.x{border:1px solid var(--line);background:transparent;color:var(--bad);border-radius:8px;cursor:pointer}
+.add{border:1px dashed var(--line);background:transparent;color:var(--acc);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:13px;margin-top:6px}
+.sw{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media (max-width:640px){.sw{grid-template-columns:1fr}}
+.pos{border-radius:12px;padding:10px 12px;background:var(--bg);margin:8px 0}.pos b{font-size:16px}
+.gb{display:grid;grid-template-columns:130px 1fr 60px;gap:4px 8px;align-items:center;font-size:13px}.gb .bar{height:10px;background:var(--line);border-radius:5px}.gb .bar i{display:block;height:100%;border-radius:5px;background:var(--acc)}
+.hint{font-size:12px;color:var(--mute)}
+
+</style></head><body><main>
+<h1>Бизнес-калькулятор</h1><div class="small"><a href="params.html">Параметры (справочник)</a></div>
+<div class="small">v0.3: проекты + модель + SWOT/PEST + сценарии · помесячно · ИП · налоги — движок v0.1, параметры M0 (НК РФ ред. с 01.10.2026)</div>
+<div class="card"><h2>Проект</h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="projSel" style="flex:1;min-width:160px"></select><input type="text" id="projName" style="flex:1;min-width:160px" placeholder="Название проекта"></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" id="pNew">Новый</button><button class="btn" id="pDup">Копия</button><button class="btn" id="pDel" style="color:var(--bad)">Удалить</button><button class="btn" id="pExp">Экспорт</button><button class="btn" id="pImp">Импорт</button></div>
+<div id="pStatus" class="small" style="margin-top:6px"></div>
+<div class="small" style="margin-top:10px">Новый проект из шаблона:</div><div class="seg" id="presets" style="margin-top:4px"></div></div>
+<div class="sheet" id="sh"><div class="box" id="shBox"></div></div>
+<div class="card" id="form"></div>
+<div class="card">
+ <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span class="small">Режим:</span><select id="regime" style="width:auto"></select><span id="regNote" class="small"></span></div>
+ <div class="tabs" id="tabs"></div><div id="out"></div>
+</div>
+<div class="card"><h2>Параметры расчёта</h2><div class="small">Справочник ставок и лимитов — на экране <a href="params.html">«Параметры»</a>; его правки применяются ко всем проектам. Ниже — правки только для этого проекта (вставьте экспорт JSON из «Параметров»).</div>
+<textarea id="m0json" rows="3" style="margin-top:8px;font:12px ui-monospace,Menlo,monospace" placeholder='{"format":"biz-calc-params", …}'></textarea>
+<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="applyM0">Применить</button><button class="btn" id="clearM0">Сбросить на закон</button><span id="m0msg" class="small"></span></div></div>
+<div class="card small"><b>Допущения v0.1.</b> Проект стартует в январе года начала. Выручка = цена × объём × рост × сезонность; первые месяцы — выход на мощность с 30%. Налоговый учёт кассовый (доход = поступления). Налоги считаются за календарный год и платятся по срокам: УСН и НДФЛ ИП — авансы в апреле, июле, октябре, за год — в апреле следующего года; НДС — тремя частями после квартала; НПД и АУСН — ежемесячно; патент — в декабре; взносы ИП — фиксированные в декабре, 1% — в июле следующего года; за работников — в следующем месяце. Платежи после конца горизонта перенесены в последний месяц. На УСН и АУСН «Д−Р» оборудование списывается в расходы в год покупки, на ОСНО — через амортизацию. Дебиторская задолженность на конец горизонта считается полученной (в потоке проекта). NPV — по потоку проекта без кредита (операционный + инвестиционный), с дисконтированием с 1-го месяца. <b>Модель — инструмент оценки, а не бизнес-план для банка и не налоговая консультация.</b></div>
+</main>
+<script>
+const SYS_VERSION = "2026-11-08 · НК РФ ч.2 ред. с 01.10.2026; 422-ФЗ ред. 04.08.2026; 17-ФЗ ред. 28.11.2025";
+const YEARS=[2026,2027];
+const G={gen:"Общие",vat:"НДС",usn:"УСН",psn:"ПСН (патент)",npd:"НПД (самозанятые)",ausn:"АУСН",osno:"ОСНО",ins:"Страховые взносы"};
+// [code, title, unit, v2026, v2027, norm, status, min, max]
+const DEFS=[
+["gen.deflator_usn","Коэффициент-дефлятор для УСН","COEF",1.090,null,"приказ МЭР № 734","SOURCE",1,2],
+["gen.mrot","МРОТ","RUB",27093,null,"закон о МРОТ","UNVERIFIED",0],
+["gen.ins_base_limit","Единая предельная база взносов","RUB",2979000,null,"постановление Правительства","UNVERIFIED",0],
+["gen.key_rate","Ключевая ставка ЦБ (для дисконтирования)","%",14,null,"cbr.ru, решение от 23.10.2026","SOURCE",0,100],
+["vat.base","НДС, основная ставка","%",22,22,"п. 3 ст. 164 НК","VERIFIED",0,100],
+["vat.reduced","НДС, льготная ставка","%",10,10,"п. 2 ст. 164 НК","SOURCE",0,100],
+["vat.usn_free_prev_year","Порог освобождения от НДС по доходу прошлого года","RUB",20e6,20e6,"абз. 3 п. 1 ст. 145 НК","VERIFIED",0],
+["vat.usn_free_in_year","Порог освобождения от НДС в течение года","RUB",20e6,20e6,"абз. 3 п. 5 ст. 145 НК","VERIFIED",0],
+["vat.usn5_limit_base","Порог ставки НДС 5% (до индексации)","RUB",250e6,250e6,"пп. 1 п. 8 ст. 164 НК","VERIFIED",0],
+["vat.usn7_limit_base","Порог ставки НДС 7% (до индексации)","RUB",450e6,450e6,"пп. 2 п. 8 ст. 164 НК","VERIFIED",0],
+["usn.rate_income","УСН «Доходы»","%",6,6,"п. 1 ст. 346.20 НК","VERIFIED",0,100],
+["usn.rate_profit","УСН «Доходы − расходы»","%",15,15,"п. 2 ст. 346.20 НК","VERIFIED",0,100],
+["usn.min_tax","Минимальный налог УСН","%",1,1,"п. 6 ст. 346.18 НК","VERIFIED",0,100],
+["usn.income_limit_base","Лимит доходов УСН (до индексации)","RUB",450e6,450e6,"п. 4 ст. 346.13 НК","VERIFIED",0],
+["usn.fixed_assets_base","Лимит ОС УСН (до индексации)","RUB",200e6,200e6,"пп. 16 п. 3 ст. 346.12 НК","VERIFIED",0],
+["usn.staff_max","Средняя численность, не более","PERSONS",130,130,"пп. 15 п. 3 ст. 346.12 НК","VERIFIED",0],
+["psn.rate","ПСН, ставка от потенциального дохода","%",6,6,"п. 1 ст. 346.50 НК","VERIFIED",0,100],
+["psn.income_limit","Лимит доходов ПСН","RUB",20e6,15e6,"пп. 1 п. 6 ст. 346.45 НК","VERIFIED",0],
+["psn.staff_max","Средняя численность, не более","PERSONS",15,15,"п. 5 ст. 346.43 НК","VERIFIED",0],
+["npd.rate_individuals","НПД с доходов от физлиц","%",4,4,"п. 1 ст. 10 422-ФЗ","VERIFIED",0,100],
+["npd.rate_business","НПД с доходов от ИП и юрлиц","%",6,6,"п. 2 ст. 10 422-ФЗ","VERIFIED",0,100],
+["npd.income_limit","Лимит дохода НПД","RUB",2.4e6,2.4e6,"пп. 8 ч. 2 ст. 4 422-ФЗ","VERIFIED",0],
+["npd.deduction","Налоговый вычет НПД (разово)","RUB",10000,10000,"ч. 1 ст. 12 422-ФЗ","VERIFIED",0],
+["ausn.rate_income","АУСН «Доходы»","%",8,8,"ч. 1 ст. 11 17-ФЗ","VERIFIED",0,100],
+["ausn.rate_profit","АУСН «Доходы − расходы»","%",20,20,"ч. 2 ст. 11 17-ФЗ","VERIFIED",0,100],
+["ausn.min_tax","Минимальный налог АУСН","%",3,3,"ч. 4 ст. 12 17-ФЗ","VERIFIED",0,100],
+["ausn.income_limit","Лимит дохода АУСН","RUB",60e6,60e6,"пп. 23 ч. 2 ст. 3 17-ФЗ","VERIFIED",0],
+["ausn.staff_max","Средняя численность, не более","PERSONS",5,5,"пп. 28 ч. 2 ст. 3 17-ФЗ","VERIFIED",0],
+["ausn.injury_fixed","Взносы на травматизм на АУСН","RUB",2959,null,"данные ФНС","UNVERIFIED",0],
+["osno.profit_rate","Налог на прибыль","%",25,25,"п. 1 ст. 284 НК","VERIFIED",0,100],
+["ins.ip_fixed","Фиксированные взносы ИП за себя","RUB",57390,61154,"пп. 1 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.ip_1pct_threshold","Порог дохода для взноса 1%","RUB",300000,300000,"пп. 2 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.ip_1pct_max","Максимум взноса 1%","RUB",321818,342923,"пп. 2 п. 1.2 ст. 430 НК","VERIFIED",0],
+["ins.tariff_base","Единый тариф в пределах базы","%",30,30,"п. 3 ст. 425 НК","VERIFIED",0,100],
+["ins.tariff_over","Единый тариф сверх базы","%",15.1,15.1,"п. 3 ст. 425 НК","VERIFIED",0,100],
+["ins.msp_rate","Тариф МСП сверх 1,5 МРОТ (приоритетные ОКВЭД)","%",15,15,"п. 2.4, п. 13.3 ст. 427 НК","VERIFIED",0,100],
+["ins.msp_manufacturing_rate","Тариф МСП-обработки сверх 1,5 МРОТ","%",7.6,7.6,"п. 2.5, п. 13.2 ст. 427 НК","VERIFIED",0,100],
+["ins.msp_income_share","Мин. доля дохода льготного ОКВЭД","%",70,70,"п. 13.3 ст. 427 НК","VERIFIED",0,100],
+];
+// Налоговый движок «Бизнес-калькулятор» · v0.1 · только ИП, годовой расчёт
+// Чистые функции: вход (параметры + данные проекта) → результат по каждому режиму.
+// Нормы указаны у каждого шага. Допущения помечены ASSUMPTION.
+(function (root) {
+  "use strict";
+
+  const r2 = x => Math.round(x * 100) / 100;
+  const pos = x => Math.max(0, x);
+
+  // ---------- Параметры ----------
+  // P(code) → число. Источник — справочник M0 (системные значения + правки).
+  function makeParams(defs, year, overrides) {
+    const i = year >= 2027 ? 1 : 0; // после 2027 — значения 2027 (прогноз)
+    const map = {};
+    for (const d of defs) {
+      let v = d[3 + i];
+      if (v == null) v = d[3]; // прогноз: значение 2026
+      map[d[0]] = v;
+    }
+    // правка года Y действует и на последующие годы, пока нет более поздней правки
+    const best = {};
+    for (const [k, o] of Object.entries(overrides || {})) {
+      const [code, y] = k.split("@");
+      if (!(code in map) || +y > year) continue;
+      if (!best[code] || +y > best[code].y) best[code] = { y: +y, v: o.value };
+    }
+    for (const [code, b] of Object.entries(best)) map[code] = b.v;
+    return code => {
+      if (!(code in map)) throw new Error("Нет параметра " + code);
+      return map[code];
+    };
+  }
+
+  // ---------- Общие блоки ----------
+
+  // Взносы ИП «за себя». base1 — база для 1% (своя на каждом режиме).
+  // пп. 1–2 п. 1.2 ст. 430 НК РФ
+  function ipContrib(P, base1) {
+    const fixed = P("ins.ip_fixed");
+    const onePct = Math.min(pos(base1 - P("ins.ip_1pct_threshold")) * 0.01, P("ins.ip_1pct_max"));
+    return { fixed, onePct: r2(onePct), total: r2(fixed + onePct) };
+  }
+
+  // Взносы за работников за год. ст. 425, 427 НК РФ.
+  // ASSUMPTION: зарплата одинаковая весь год; травматизм 0,2% (I класс риска, 125-ФЗ — не сверено).
+  function payrollContrib(P, d) {
+    const n = d.staff || 0, s = d.salary || 0;
+    if (!n || !s) return { fot: 0, contrib: 0, injury: 0, total: 0, note: "" };
+    const fot = 12 * n * s;
+    let perPerson, note;
+    if (d.msp) {
+      const lim = 1.5 * P("gen.mrot");
+      const msp = d.mspManufacturing ? P("ins.msp_manufacturing_rate") : P("ins.msp_rate");
+      perPerson = 12 * (P("ins.tariff_base") / 100 * Math.min(s, lim) + msp / 100 * pos(s - lim));
+      note = `льгота МСП: 30% до 1,5 МРОТ, ${msp}% сверх`;
+    } else {
+      const base = P("gen.ins_base_limit"), y = 12 * s;
+      perPerson = P("ins.tariff_base") / 100 * Math.min(y, base) + P("ins.tariff_over") / 100 * pos(y - base);
+      note = "единый тариф 30% / 15,1%";
+    }
+    const contrib = n * perPerson;
+    const injury = fot * 0.002;
+    return { fot, contrib: r2(contrib), injury: r2(injury), total: r2(contrib + injury), note };
+  }
+
+  // НДФЛ по прогрессивной шкале. п. 1 ст. 224 НК РФ
+  function ndflProgressive(base) {
+    const steps = [[2.4e6, 0.13], [5e6, 0.15], [20e6, 0.18], [50e6, 0.20], [Infinity, 0.22]];
+    let tax = 0, prev = 0;
+    for (const [top, rate] of steps) {
+      if (base <= prev) break;
+      tax += (Math.min(base, top) - prev) * rate;
+      prev = top;
+    }
+    return r2(tax);
+  }
+
+  // НДС на УСН: месяцы, в которых действует обязанность. ст. 145, п. 8 ст. 164 НК РФ.
+  // ASSUMPTION: выручка распределена по месяцам равномерно.
+  function usnVatMonths(P, d) {
+    if (d.prevIncome > P("vat.usn_free_prev_year")) return { from: 1, months: 12, reason: "доход прошлого года выше порога — НДС с января" };
+    const thr = P("vat.usn_free_in_year");
+    if (d.income <= thr) return { from: 13, months: 0, reason: "доход в пределах порога — освобождение" };
+    const m = Math.ceil(thr / (d.income / 12)); // месяц превышения
+    const from = m + 1;                          // со следующего месяца (абз. 3 п. 5 ст. 145)
+    return { from, months: pos(12 - m), reason: `порог превышен в ${m}-м месяце — НДС с ${from}-го` };
+  }
+
+  function usnVatVariants(P, d) {
+    const vm = usnVatMonths(P, d);
+    const share = vm.months / 12;
+    const grossTaxable = d.income * share;
+    const exTaxable = d.expenses * share;
+    const defl = P("gen.deflator_usn");
+    const variants = [{ id: "NONE", label: "без НДС", vat: 0, vatOut: 0, vatIn: 0, incomeNet: d.income, expensesForTax: d.expenses }];
+    if (vm.months > 0) {
+      const reduced = d.income <= P("vat.usn5_limit_base") * defl ? 5 : 7;
+      const out = grossTaxable * reduced / (100 + reduced);
+      // при 5/7% входящий НДС не вычитается и остаётся в расходах
+      variants[0] = { id: "R" + reduced, label: `НДС ${reduced}% без вычетов`, vat: r2(out), vatOut: r2(out), vatIn: 0,
+        incomeNet: d.income - out, expensesForTax: d.expenses };
+      const b = P("vat.base");
+      const out22 = grossTaxable * b / (100 + b);
+      const in22 = exTaxable * (d.vatExpShare || 0) * b / (100 + b);
+      variants.push({ id: "R22", label: `НДС ${b}% с вычетами`, vat: r2(out22 - in22), vatOut: r2(out22), vatIn: r2(in22),
+        incomeNet: d.income - out22, expensesForTax: d.expenses - in22 });
+    }
+    return { vm, variants };
+  }
+
+  // ---------- Режимы ----------
+  function calcNPD(P, d) {
+    const why = [];
+    if (d.income > P("npd.income_limit")) why.push(`доход выше ${fmtM(P("npd.income_limit"))} (пп. 8 ч. 2 ст. 4 422-ФЗ)`);
+    if (d.staff > 0) why.push("есть работники по трудовому договору (пп. 4 ч. 2 ст. 4 422-ФЗ)");
+    if (d.resale) why.push("перепродажа товаров запрещена (пп. 2 ч. 2 ст. 4 422-ФЗ)");
+    const ph = d.income * (d.physShare ?? 1), bz = d.income - ph;
+    const gross = ph * P("npd.rate_individuals") / 100 + bz * P("npd.rate_business") / 100;
+    const ded = Math.min(d.npdDeductionLeft ?? P("npd.deduction"), ph * 0.01 + bz * 0.02); // ч. 2 ст. 12 422-ФЗ
+    const tax = r2(gross - ded);
+    return res("NPD", "НПД (самозанятый)", why, d, { tax, vat: 0, ipContrib: 0, payroll: 0 }, [
+      `Налог: ${fmtR(ph)} × ${P("npd.rate_individuals")}% + ${fmtR(bz)} × ${P("npd.rate_business")}% = ${fmtR(gross)}`,
+      `Вычет (1% / 2% от базы, не более остатка 10 000 ₽): −${fmtR(ded)}`,
+      "Взносы ИП за себя не платятся (ч. 11 ст. 2 422-ФЗ)"]);
+  }
+
+  function calcPSN(P, d) {
+    const why = [];
+    if (!d.psnPotential) why.push("не задан потенциальный доход по патенту (региональный закон)");
+    if (d.income > P("psn.income_limit")) why.push(`доход выше ${fmtM(P("psn.income_limit"))} (пп. 1 п. 6 ст. 346.45 НК)`);
+    if (d.staff > P("psn.staff_max")) why.push(`работников больше ${P("psn.staff_max")} (п. 5 ст. 346.43 НК)`);
+    const pot = d.psnPotential || 0;
+    const ip = ipContrib(P, pot); // база 1% на ПСН — потенциальный доход
+    const pr = payrollContrib(P, d);
+    const gross = pot * P("psn.rate") / 100;
+    const limit = d.staff > 0 ? gross * 0.5 : gross; // п. 1.2 ст. 346.51 НК (сверено)
+    const reduce = Math.min(limit, ip.total + pr.contrib);
+    const tax = r2(gross - reduce);
+    return res("PSN", "ПСН (патент)", why, d, { tax, vat: 0, ipContrib: ip.total, payroll: pr.total, fot: pr.fot }, [
+      `Патент: ${fmtR(pot)} × ${P("psn.rate")}% = ${fmtR(gross)}`,
+      `Уменьшение на взносы (${d.staff > 0 ? "не более 50%" : "до 100%"}): −${fmtR(reduce)}`,
+      `Взносы ИП: ${fmtR(ip.fixed)} + 1% с потенц. дохода сверх 300 000 = ${fmtR(ip.total)}`,
+      pr.fot ? `Взносы за работников (${pr.note}) + травматизм 0,2%: ${fmtR(pr.total)}` : null]);
+  }
+
+  function calcUSN(P, d, obj) {
+    const why = [];
+    const lim = P("usn.income_limit_base") * P("gen.deflator_usn");
+    if (d.income > lim) why.push(`доход выше ${fmtM(lim)} (п. 4 ст. 346.13 НК)`);
+    if (d.staff > P("usn.staff_max")) why.push(`работников больше ${P("usn.staff_max")}`);
+    const rate = obj === "INCOME" ? (d.usnRegionalIncome ?? P("usn.rate_income")) : (d.usnRegionalProfit ?? P("usn.rate_profit"));
+    const pr = payrollContrib(P, d);
+    const { vm, variants } = usnVatVariants(P, d);
+    const results = variants.map(v => {
+      const income = v.incomeNet; // ASSUMPTION: НДС, предъявленный покупателю, не включается в доходы (ст. 248 НК)
+      const exp = v.expensesForTax;
+      let tax, ip, lines = [];
+      if (obj === "INCOME") {
+        ip = ipContrib(P, income); // база 1% — все доходы
+        const gross = income * rate / 100;
+        const limit = d.staff > 0 ? gross * 0.5 : gross; // п. 3.1 ст. 346.21 НК
+        const reduce = Math.min(limit, ip.total + pr.contrib);
+        tax = r2(gross - reduce);
+        lines = [`Налог: ${fmtR(income)} × ${rate}% = ${fmtR(gross)}`,
+          `Уменьшение на взносы (${d.staff > 0 ? "не более 50%" : "до 100%"}): −${fmtR(reduce)}`];
+      } else {
+        // база 1% = доходы − (расходы без взносов ИП за себя); 425-ФЗ
+        ip = ipContrib(P, income - exp - pr.fot - pr.total);
+        const base = income - exp - pr.fot - pr.total - ip.total; // взносы — в расходах (пп. 7 п. 1 ст. 346.16)
+        const t = pos(base) * rate / 100, minT = income * P("usn.min_tax") / 100;
+        tax = r2(Math.max(t, minT));
+        lines = [`База: ${fmtR(income)} − расходы ${fmtR(exp)} − ФОТ и взносы ${fmtR(pr.fot + pr.total + ip.total)} = ${fmtR(base)}`,
+          `Налог ${rate}%: ${fmtR(t)}; минимальный ${P("usn.min_tax")}%: ${fmtR(minT)} → ${fmtR(tax)}`];
+      }
+      lines.push(`Взносы ИП: ${fmtR(ip.total)} (фикс. ${fmtR(ip.fixed)} + 1% ${fmtR(ip.onePct)})`);
+      if (pr.fot) lines.push(`Взносы за работников (${pr.note}) + травматизм: ${fmtR(pr.total)}`);
+      if (vm.months) lines.push(`НДС (${v.label}): ${vm.reason}; к уплате ${fmtR(v.vat)}${v.vatIn ? ` (начислено ${fmtR(v.vatOut)}, вычет ${fmtR(v.vatIn)})` : ""}`);
+      return { v, tax, ip, lines };
+    });
+    // выбираем вариант НДС с наименьшей нагрузкой
+    const total = x => x.tax + x.v.vat + x.ip.total;
+    results.sort((a, b) => total(a) - total(b));
+    const best = results[0];
+    const alt = results[1];
+    const lines = [...best.lines];
+    if (alt) lines.push(`Альтернатива «${alt.v.label}»: нагрузка ${fmtR(total(alt) + pr.total)} — дороже на ${fmtR(total(alt) - total(best))}. Выбор 5/7% — минимум на 12 кварталов.`);
+    const id = obj === "INCOME" ? "USN6" : "USN15";
+    const name = obj === "INCOME" ? `УСН «Доходы» ${rate}%` : `УСН «Доходы − расходы» ${rate}%`;
+    return res(id, name, why, d, { tax: best.tax, vat: best.v.vat, ipContrib: best.ip.total, payroll: pr.total, fot: pr.fot, vatMode: best.v.label }, lines);
+  }
+
+  function calcAUSN(P, d, obj) {
+    const why = [];
+    if (d.income > P("ausn.income_limit")) why.push(`доход выше ${fmtM(P("ausn.income_limit"))} (пп. 23 ч. 2 ст. 3 17-ФЗ)`);
+    if (d.staff > P("ausn.staff_max")) why.push(`работников больше ${P("ausn.staff_max")} (пп. 28 ч. 2 ст. 3 17-ФЗ)`);
+    if (d.ausnRegion === false) why.push("АУСН не введена в регионе");
+    const fot = 12 * (d.staff || 0) * (d.salary || 0);
+    const injury = d.staff > 0 ? P("ausn.injury_fixed") : 0; // ASSUMPTION: фикс. сумма на плательщика при наличии работников
+    let tax, lines;
+    if (obj === "INCOME") {
+      tax = r2(d.income * P("ausn.rate_income") / 100);
+      lines = [`Налог: ${fmtR(d.income)} × ${P("ausn.rate_income")}% = ${fmtR(tax)}`];
+    } else {
+      const base = d.income - d.expenses - fot - injury;
+      const t = pos(base) * P("ausn.rate_profit") / 100, minT = d.income * P("ausn.min_tax") / 100;
+      tax = r2(Math.max(t, minT));
+      lines = [`База: ${fmtR(d.income)} − ${fmtR(d.expenses + fot + injury)} = ${fmtR(base)}`,
+        `Налог ${P("ausn.rate_profit")}%: ${fmtR(t)}; минимальный ${P("ausn.min_tax")}%: ${fmtR(minT)} → ${fmtR(tax)}`];
+    }
+    lines.push("Взносы ИП за себя — 0 ₽, за работников — 0% (ч. 1, 7 ст. 18 17-ФЗ)");
+    if (injury) lines.push(`Взносы на травматизм: ${fmtR(injury)}`);
+    lines.push("НДС не уплачивается. Эксперимент — до 31.12.2027.");
+    return res(obj === "INCOME" ? "AUSN8" : "AUSN20", `АУСН «${obj === "INCOME" ? "Доходы" : "Доходы − расходы"}»`, why, d,
+      { tax, vat: 0, ipContrib: 0, payroll: injury, fot }, lines);
+  }
+
+  function calcOSNO(P, d) {
+    const b = P("vat.base");
+    const vatOut = d.income * b / (100 + b);
+    const vatIn = d.expenses * (d.vatExpShare || 0) * b / (100 + b);
+    const vat = r2(vatOut - vatIn);
+    const income = d.income - vatOut, exp = d.expenses - vatIn;
+    const pr = payrollContrib(P, d);
+    const ip = ipContrib(P, income - exp - pr.fot - pr.total); // ASSUMPTION: база 1% = доходы − проф. вычеты
+    const base = income - exp - pr.fot - pr.total - ip.total;
+    const tax = ndflProgressive(pos(base));
+    return res("OSNO", "ОСНО (НДФЛ + НДС)", [], d, { tax, vat, ipContrib: ip.total, payroll: pr.total, fot: pr.fot }, [
+      `НДС ${b}%: начислено ${fmtR(vatOut)}, вычет ${fmtR(vatIn)} → ${fmtR(vat)}`,
+      `База НДФЛ: ${fmtR(income)} − ${fmtR(exp + pr.fot + pr.total + ip.total)} = ${fmtR(base)}`,
+      `НДФЛ по шкале 13–22% (ст. 224 НК): ${fmtR(tax)}`,
+      `Взносы ИП: ${fmtR(ip.total)}`,
+      pr.fot ? `Взносы за работников (${pr.note}) + травматизм: ${fmtR(pr.total)}` : null]);
+  }
+
+  // ---------- Сборка результата ----------
+  function res(id, name, why, d, m, lines) {
+    const burden = r2(m.tax + m.vat + m.ipContrib + m.payroll);
+    const fot = m.fot || 0;
+    return {
+      id, name, available: why.length === 0, why,
+      tax: m.tax, vat: m.vat, ipContrib: m.ipContrib, payroll: m.payroll, fot, vatMode: m.vatMode || "",
+      burden, burdenPct: d.income ? r2(burden / d.income * 100) : 0,
+      net: r2(d.income - d.expenses - fot - burden),
+      lines: lines.filter(Boolean)
+    };
+  }
+
+  function compareRegimes(P, d) {
+    const list = [calcNPD(P, d), calcPSN(P, d), calcUSN(P, d, "INCOME"), calcUSN(P, d, "PROFIT"),
+      calcAUSN(P, d, "INCOME"), calcAUSN(P, d, "PROFIT"), calcOSNO(P, d)];
+    const ok = list.filter(x => x.available).sort((a, b) => a.burden - b.burden);
+    const best = ok[0] ? ok[0].id : null;
+    return { list, best };
+  }
+
+  function fmtR(x) { return (Math.round(x)).toLocaleString("ru-RU") + " ₽"; }
+  function fmtM(x) { return (x / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + " млн ₽"; }
+
+  const api = { makeParams, ipContrib, payrollContrib, ndflProgressive, usnVatMonths, calcNPD, calcPSN, calcUSN, calcAUSN, calcOSNO, compareRegimes };
+  if (typeof module !== "undefined") module.exports = api; else root.TaxEngine = api;
+})(this);
+
+// Финансовая модель «Бизнес-калькулятор» · v0.1 · помесячно, ИП
+// Зависит от TaxEngine (engine.js). Чистые функции, без UI.
+(function (root) {
+  "use strict";
+  const E = typeof module !== "undefined" ? require("./engine.js") : root.TaxEngine;
+  const r2 = x => Math.round(x * 100) / 100;
+  const sum = a => a.reduce((s, x) => s + x, 0);
+
+  const REGIMES = ["NPD", "PSN", "USN6", "USN15", "AUSN8", "AUSN20", "OSNO"];
+  const REGIME_NAMES = { NPD: "НПД", PSN: "ПСН (патент)", USN6: "УСН «Доходы»", USN15: "УСН «Доходы − расходы»",
+    AUSN8: "АУСН «Доходы»", AUSN20: "АУСН «Доходы − расходы»", OSNO: "ОСНО" };
+
+  function calcRegime(P, id, d) {
+    switch (id) {
+      case "NPD": return E.calcNPD(P, d);
+      case "PSN": return E.calcPSN(P, d);
+      case "USN6": return E.calcUSN(P, d, "INCOME");
+      case "USN15": return E.calcUSN(P, d, "PROFIT");
+      case "AUSN8": return E.calcAUSN(P, d, "INCOME");
+      case "AUSN20": return E.calcAUSN(P, d, "PROFIT");
+      case "OSNO": return E.calcOSNO(P, d);
+    }
+    throw new Error("Неизвестный режим " + id);
+  }
+
+  // Аннуитет: платёж, проценты и тело по месяцам
+  function loanSchedule(amount, ratePct, term, H) {
+    const i = ratePct / 100 / 12, rows = [];
+    const pay = !amount ? 0 : i === 0 ? amount / term : amount * i / (1 - Math.pow(1 + i, -term));
+    let bal = amount;
+    for (let t = 0; t < H; t++) {
+      if (t >= term || bal <= 0.005) { rows.push({ interest: 0, principal: 0, balance: 0 }); continue; }
+      const interest = bal * i, principal = Math.min(pay - interest, bal);
+      bal -= principal;
+      rows.push({ interest, principal, balance: bal });
+    }
+    return { pay, rows };
+  }
+
+  // ---------- Основной расчёт ----------
+  // inp: см. DEFAULT_INPUT на странице. defs/overrides — справочник M0.
+  function runModel(inp, defs, overrides, regimeId) {
+    const H = inp.horizon, Y = Math.ceil(H / 12);
+    const lag = Math.round((inp.delayDays || 0) / 30);
+    const season = inp.season && inp.season.length === 12 ? inp.season : Array(12).fill(1);
+    const g = (inp.growthPct || 0) / 100;
+
+    // 1. Начисления по месяцам
+    const M = [];
+    for (let t = 0; t < H; t++) {
+      const yi = Math.floor(t / 12), mi = t % 12;
+      const ramp = inp.rampMonths && t < inp.rampMonths ? (0.3 + 0.7 * (t + 1) / inp.rampMonths) : 1; // выход на мощность от 30%
+      const vol = inp.volume * Math.pow(1 + g, t) * season[mi] * ramp;
+      const rev = inp.price * vol;
+      const salary = (inp.salary || 0) * Math.pow(1 + (inp.salaryIndexPct || 0) / 100, yi);
+      M.push({ t, yi, mi, year: inp.startYear + yi, vol, rev,
+        varCost: rev * (inp.varCostPct || 0) / 100, fixed: (inp.fixed || 0) * Math.pow(1 + (inp.fixedIndexPct || 0) / 100, yi),
+        salaries: (inp.staff || 0) * salary, salary,
+        amort: inp.capex && inp.lifeMonths && t < inp.lifeMonths ? inp.capex / inp.lifeMonths : 0,
+        cashIn: 0, payroll: 0, taxPay: 0, vatPay: 0, ipPay: 0, payrollPay: 0, tax: 0, vat: 0, ipContrib: 0 });
+    }
+    for (let t = 0; t < H; t++) if (t + lag < H) M[t + lag].cashIn += M[t].rev; // поступления с отсрочкой
+    const unpaidAR = sum(M.slice(H - lag).map(m => m.rev)); // дебиторка на конец горизонта
+    const loan = loanSchedule(inp.loanAmount || 0, inp.loanRate || 0, inp.loanTerm || 1, H);
+
+    // 2. Налоги по календарным годам (кассовый метод: доход = поступления)
+    const years = [], tail = { tax: 0, vat: 0, ip: 0, payroll: 0 };
+    let prevIncome = inp.prevIncome || 0, unavailable = null;
+    const due = (t, key, amount) => { if (t < H) M[t][key] += amount; else tail[key === "taxPay" ? "tax" : key === "vatPay" ? "vat" : key === "ipPay" ? "ip" : "payroll"] += amount; };
+    for (let yi = 0; yi < Y; yi++) {
+      const ms = M.filter(m => m.yi === yi), year = inp.startYear + yi;
+      const P = E.makeParams(defs, year, overrides);
+      const income = sum(ms.map(m => m.cashIn));
+      const capexY = yi === 0 ? (inp.capex || 0) : 0;
+      const interestY = sum(ms.map(m => loan.rows[m.t].interest));
+      const opEx = sum(ms.map(m => m.varCost + m.fixed)) + interestY;
+      // расходы для налога: на УСН/АУСН «Д−Р» ОС списываются при оплате (упрощённо), на ОСНО — амортизация
+      const expTax = regimeId === "OSNO" ? opEx + sum(ms.map(m => m.amort)) : opEx + (["USN15", "AUSN20"].includes(regimeId) ? capexY : 0);
+      const d = { income, expenses: expTax, prevIncome, physShare: (inp.physSharePct ?? 100) / 100, vatExpShare: (inp.vatExpSharePct || 0) / 100,
+        staff: inp.staff || 0, salary: ms.length ? sum(ms.map(m => m.salary)) / ms.length : 0, msp: !!inp.msp, mspManufacturing: !!inp.mspManufacturing,
+        resale: !!inp.resale, ausnRegion: inp.ausnRegion !== false, psnPotential: inp.psnPotential || 0 };
+      if (inp.usnRegionalIncome != null) d.usnRegionalIncome = inp.usnRegionalIncome;
+      if (inp.usnRegionalProfit != null) d.usnRegionalProfit = inp.usnRegionalProfit;
+      const r = calcRegime(P, regimeId, d);
+      const why = [...r.why];
+      if (regimeId.startsWith("AUSN") && year > 2027) why.push("эксперимент АУСН — до 31.12.2027 (ч. 2 ст. 1 17-ФЗ)");
+      if (regimeId === "NPD" && year > 2028) why.push("эксперимент НПД — до 31.12.2028 (ч. 2 ст. 1 422-ФЗ)");
+      if (why.length && !unavailable) unavailable = `${year}: ${why.join("; ")}`;
+      const fixedIP = ["NPD", "AUSN8", "AUSN20"].includes(regimeId) ? 0 : Math.min(P("ins.ip_fixed"), r.ipContrib);
+      const onePct = r.ipContrib - fixedIP;
+      years.push({ year, income, opEx, r, prevIncome });
+
+      // доли кварталов/месяцев по поступлениям
+      const share = m => income ? m.cashIn / income : 1 / ms.length;
+      const base = yi * 12; // t первого месяца года
+      // НДС и налог — уплата по срокам
+      for (const m of ms) {
+        m.tax = r.tax * share(m); m.vat = r.vat * share(m); m.ipContrib = r.ipContrib * share(m);
+        m.payroll = r.payroll / ms.length;
+        due(m.t + 1, "payrollPay", m.payroll); // взносы за работников — до 28-го следующего месяца
+      }
+      for (let q = 0; q < 4; q++) {
+        const qm = ms.filter(m => Math.floor(m.mi / 3) === q); if (!qm.length) continue;
+        const qTax = sum(qm.map(m => m.tax)), qVat = sum(qm.map(m => m.vat));
+        // НДС: тремя равными частями в три месяца после квартала (ст. 174 НК — не сверял)
+        for (let k = 1; k <= 3; k++) due(base + q * 3 + 2 + k, "vatPay", qVat / 3);
+        if (["USN6", "USN15", "OSNO"].includes(regimeId)) {
+          // авансы: апрель, июль, октябрь; за год — апрель следующего года (ИП)
+          due(q < 3 ? base + q * 3 + 3 : base + 12 + 3, "taxPay", qTax);
+        }
+      }
+      if (["NPD", "AUSN8", "AUSN20"].includes(regimeId)) for (const m of ms) due(m.t + 1, "taxPay", m.tax); // ежемесячно
+      if (regimeId === "PSN") due(base + 11, "taxPay", r.tax); // патент на год — до конца срока (упрощённо: декабрь)
+      due(base + 11, "ipPay", fixedIP);      // фиксированные — до 28 декабря
+      due(base + 12 + 6, "ipPay", onePct);   // 1% — до 1 июля следующего года
+      prevIncome = income;
+    }
+    // хвост платежей за пределами горизонта — в последний месяц (консервативно)
+    const L = M[H - 1];
+    L.taxPay += tail.tax; L.vatPay += tail.vat; L.ipPay += tail.ip; L.payrollPay += tail.payroll;
+
+    // 3. БДДС
+    let cash = 0, cum = 0, cumD = 0, minCum = 0;
+    const rm = Math.pow(1 + (inp.discountRatePct || 0) / 100, 1 / 12) - 1;
+    for (const m of M) {
+      const lr = loan.rows[m.t];
+      m.opIn = m.cashIn;
+      m.opOut = m.varCost + m.fixed + m.salaries + m.payrollPay + m.taxPay + m.vatPay + m.ipPay;
+      m.opCF = m.opIn - m.opOut;
+      m.invCF = m.t === 0 ? -(inp.capex || 0) : 0;
+      m.finCF = (m.t === 0 ? (inp.ownFunds || 0) + (inp.loanAmount || 0) : 0) - lr.principal - lr.interest;
+      m.interest = lr.interest; m.principal = lr.principal;
+      m.projectCF = m.opCF + m.invCF; // поток проекта для NPV (без финансирования)
+      if (m.t === H - 1) m.projectCF += unpaidAR; // ASSUMPTION: дебиторка на конец горизонта будет получена
+      m.cashStart = cash; cash += m.opCF + m.invCF + m.finCF; m.cashEnd = cash;
+      cum += m.projectCF; m.cumCF = cum; minCum = Math.min(minCum, cum);
+      m.disc = m.projectCF / Math.pow(1 + rm, m.t + 1); cumD += m.disc; m.cumDisc = cumD;
+    }
+
+    // 4. Показатели
+    const flows = M.map(m => m.projectCF);
+    const npv = r2(sum(M.map(m => m.disc)) - 0); // CAPEX в месяце 1, дисконтирование с 1-го месяца
+    const irrM = irr(flows);
+    let signCh = 0; for (let k = 1; k < flows.length; k++) if (flows[k] * flows[k - 1] < 0) signCh++;
+    const pvPos = sum(M.filter(m => m.disc > 0).map(m => m.disc)), pvNeg = -sum(M.filter(m => m.disc < 0).map(m => m.disc));
+    const firstPos = arr => { let seenNeg = false; for (const m of M) { if (arr(m) < 0) seenNeg = true; if (seenNeg && arr(m) >= 0) return m.t + 1; } return seenNeg ? null : 0; };
+    const gap = M.find(m => m.cashEnd < -0.5);
+    // точка безубыточности (1-й год, без налогов): постоянные / доля маржи
+    const y1 = M.filter(m => m.yi === 0);
+    const fcMonth = sum(y1.map(m => m.fixed + m.salaries + m.payroll)) / y1.length;
+    const marginShare = 1 - (inp.varCostPct || 0) / 100;
+    const beRev = marginShare > 0 ? fcMonth / marginShare : null;
+
+    // 5. БДР по годам
+    const pnl = years.map((y, yi) => {
+      const ms = M.filter(m => m.yi === yi), rev = sum(ms.map(m => m.rev));
+      const vat = y.r.vat * (y.income ? rev / y.income : 1);
+      const netRev = rev - vat, varC = sum(ms.map(m => m.varCost)), margin = netRev - varC;
+      const fixed = sum(ms.map(m => m.fixed)), sal = sum(ms.map(m => m.salaries)), pay = y.r.payroll, ip = y.r.ipContrib;
+      const ebitda = margin - fixed - sal - pay - ip, amort = sum(ms.map(m => m.amort)), ebit = ebitda - amort;
+      const interest = sum(ms.map(m => m.interest)), ebt = ebit - interest, tax = y.r.tax, net = ebt - tax;
+      return { year: y.year, rev, vat, netRev, varC, margin, fixed, sal, pay, ip, ebitda, amort, ebit, interest, ebt, tax, net,
+        ros: netRev ? net / netRev * 100 : 0, burden: y.r.burden, burdenPct: y.r.burdenPct, cashIn: y.income };
+    });
+
+    return {
+      regimeId, regimeName: REGIME_NAMES[regimeId], available: !unavailable, unavailable,
+      months: M, pnl, years: years.map(y => ({ year: y.year, income: y.income, tax: y.r.tax, vat: y.r.vat, ip: y.r.ipContrib, payroll: y.r.payroll, lines: y.r.lines })),
+      kpi: {
+        npv, irrMultiple: signCh > 1, irrYear: irrM == null ? null : (Math.pow(1 + irrM, 12) - 1) * 100,
+        pi: pvNeg ? pvPos / pvNeg : null, pp: firstPos(m => m.cumCF), dpp: firstPos(m => m.cumDisc),
+        maxNeed: -minCum, cashGapMonth: gap ? gap.t + 1 : null, cashMin: Math.min(...M.map(m => m.cashEnd)),
+        beRevMonth: beRev, beUnitsMonth: beRev && inp.price ? beRev / inp.price : null,
+        totalTaxes: sum(years.map(y => y.r.tax + y.r.vat + y.r.ipContrib + y.r.payroll)),
+        netTotal: sum(pnl.map(p => p.net)), loanPay: loan.pay, unpaidAR
+      }
+    };
+  }
+
+  // IRR месячный: бисекция по NPV(r)=0. Нет смены знака — null.
+  function irr(flows) {
+    const f = r => flows.reduce((s, c, t) => s + c / Math.pow(1 + r, t + 1), 0);
+    if (!(flows.some(x => x < 0) && flows.some(x => x > 0))) return null;
+    // ищем первую смену знака на сетке ставок, затем уточняем бисекцией
+    // сначала ищем корень от 0 вверх, потом от 0 вниз — берём ближайший к нулю
+    const up = [0, 0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.5, 0.75, 1, 1.5, 2, 3, 5];
+    const down = [-0.02, -0.05, -0.1, -0.2, -0.5, -0.9];
+    const pairs = [];
+    for (let j = 0; j < up.length - 1; j++) pairs.push([up[j], up[j + 1]]);
+    let prev = 0; for (const x of down) { pairs.push([x, prev]); prev = x; }
+    for (const [a0, b0] of pairs) {
+      let lo = a0, hi = b0, flo = f(lo), fhi = f(hi);
+      if (flo === 0) return lo;
+      if (flo * fhi > 0) continue;
+      for (let k = 0; k < 200; k++) {
+        const mid = (lo + hi) / 2, fm = f(mid);
+        if (Math.abs(fm) < 1e-7) return mid;
+        if (flo * fm < 0) { hi = mid; fhi = fm; } else { lo = mid; flo = fm; }
+      }
+      return (lo + hi) / 2;
+    }
+    return null;
+  }
+
+  // Сравнение режимов по всему горизонту
+  function compareOverHorizon(inp, defs, ov) {
+    return REGIMES.map(id => runModel(inp, defs, ov, id))
+      .sort((a, b) => (b.available - a.available) || (b.kpi.npv - a.kpi.npv));
+  }
+
+  // Чувствительность NPV: ±delta по каждому фактору + порог (множитель, при котором NPV = 0)
+  const FACTORS = [["price", "Цена"], ["volume", "Объём продаж"], ["varCostPct", "Переменные затраты, %"],
+    ["fixed", "Постоянные расходы"], ["salary", "Зарплата"], ["capex", "Инвестиции (CAPEX)"]];
+  function sensitivity(inp, defs, ov, regimeId, delta = 0.2) {
+    const npvAt = (k, mult) => runModel({ ...inp, [k]: (inp[k] || 0) * mult }, defs, ov, regimeId).kpi.npv;
+    const base = runModel(inp, defs, ov, regimeId).kpi.npv;
+    return FACTORS.filter(([k]) => inp[k]).map(([k, name]) => {
+      const lo = npvAt(k, 1 - delta), hi = npvAt(k, 1 + delta);
+      // порог: множитель в [0; 3], где NPV меняет знак относительно базы
+      let threshold = null;
+      const f = m => npvAt(k, m);
+      const probe = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+      for (let j = 0; j < probe.length - 1; j++) {
+        let a = probe[j], b = probe[j + 1], fa = f(a), fb = f(b);
+        if (fa === 0) { threshold = a; break; }
+        if (fa * fb < 0) { for (let it = 0; it < 30; it++) { const c = (a + b) / 2, fc = f(c); if (fa * fc <= 0) { b = c; fb = fc; } else { a = c; fa = fc; } } threshold = (a + b) / 2; break; }
+      }
+      return { key: k, name, lo, hi, spread: Math.abs(hi - lo), threshold, base };
+    }).sort((a, b) => b.spread - a.spread);
+  }
+
+  const api = { runModel, compareOverHorizon, sensitivity, irr, loanSchedule, REGIMES, REGIME_NAMES, FACTORS };
+  if (typeof module !== "undefined") module.exports = api; else root.FinModel = api;
+})(this);
+
+// Стратегический анализ «Бизнес-калькулятор» · v0.1
+// SWOT и PESTEL со связью с финмоделью: фактор может менять параметр модели → сценарии.
+(function (root) {
+  "use strict";
+  const F = typeof module !== "undefined" ? require("./finmodel.js") : root.FinModel;
+
+  // Параметры модели, на которые может влиять фактор
+  const TARGETS = {
+    price: "Цена", volume: "Объём продаж", growthPct: "Рост продаж", varCostPct: "Переменные затраты",
+    fixed: "Постоянные расходы", salary: "Зарплата", capex: "Инвестиции", delayDays: "Отсрочка оплаты", loanRate: "Ставка кредита"
+  };
+  const SWOT_Q = { S: "Сильные стороны", W: "Слабые стороны", O: "Возможности", T: "Угрозы" };
+  const PEST_G = { P: "Политические", E: "Экономические", S: "Социальные", T: "Технологические", Ecol: "Экологические", L: "Правовые" };
+
+  // Фактор: { id, src:'SWOT'|'PEST', q:'S'|'W'|'O'|'T' (для PEST — 'O'|'T'), group (PEST), text,
+  //           weight 1–5 (SWOT) | impact 1–3 (PEST), prob 0–1, target?, deltaPct? }
+  const isFav = f => f.q === "S" || f.q === "O";
+  const probOf = f => (f.q === "S" || f.q === "W") ? 1 : Math.min(1, Math.max(0, f.prob ?? 0.5)); // внутренние факторы — уже есть
+
+  // SWOT: балл квадранта = Σ вес × вероятность; позиция = (S − W, O − T)
+  function scoreSwot(factors) {
+    const sw = factors.filter(f => f.src === "SWOT");
+    const score = { S: 0, W: 0, O: 0, T: 0 };
+    for (const f of sw) score[f.q] += (f.weight || 0) * probOf(f);
+    const internal = score.S - score.W, external = score.O - score.T;
+    const pos = internal >= 0 && external >= 0 ? ["SO", "Наступление", "Сильные стороны и возможности перевешивают: расширяться, использовать окно возможностей."]
+      : internal >= 0 ? ["ST", "Защита", "Сильная позиция, но среда враждебна: использовать сильные стороны против угроз, не рисковать ростом."]
+      : external >= 0 ? ["WO", "Укрепление", "Среда благоприятна, но есть внутренние слабости: закрыть их, чтобы воспользоваться возможностями."]
+      : ["WT", "Выживание", "Слабости совпадают с угрозами: минимизировать риски, пересмотреть идею или масштаб."];
+    return { score, internal, external, pos: { code: pos[0], name: pos[1], text: pos[2] } };
+  }
+
+  // PESTEL: значимость = сила влияния (1–3) × вероятность (0–1); нормированный вес по сумме
+  function scorePest(factors) {
+    const pe = factors.filter(f => f.src === "PEST").map(f => ({ ...f, score: (f.impact || 1) * probOf(f) }));
+    const total = pe.reduce((s, f) => s + f.score, 0) || 1;
+    for (const f of pe) f.share = f.score / total;
+    const byGroup = {};
+    for (const g of Object.keys(PEST_G)) byGroup[g] = pe.filter(f => f.group === g).reduce((s, f) => s + f.score, 0);
+    return { list: pe.sort((a, b) => b.score - a.score), byGroup };
+  }
+
+  // Применение влияний к входу модели.
+  // mode: 'PESS' — все неблагоприятные (W, T) целиком; 'OPT' — все благоприятные (S, O) целиком;
+  //       'EXP' — ожидаемый: каждый фактор × вероятность (W, S — с вероятностью 1).
+  // Несколько влияний на один параметр перемножаются: (1+a)(1+b).
+  function applyImpacts(inp, factors, mode) {
+    const out = { ...inp }, applied = [];
+    const mult = {};
+    for (const f of factors) {
+      if (!f.target || !f.deltaPct || !(f.target in TARGETS)) continue;
+      let k;
+      if (mode === "PESS") { if (isFav(f)) continue; k = 1; }
+      else if (mode === "OPT") { if (!isFav(f)) continue; k = 1; }
+      else if (mode === "EXP") k = probOf(f);
+      else continue;
+      const d = f.deltaPct / 100 * k;
+      mult[f.target] = (mult[f.target] ?? 1) * (1 + d);
+      applied.push({ text: f.text, target: f.target, deltaPct: d * 100 });
+    }
+    for (const [t, m] of Object.entries(mult)) {
+      out[t] = (inp[t] || 0) * m;
+      if (t === "varCostPct") out[t] = Math.min(100, out[t]);
+    }
+    return { inp: out, applied, mult };
+  }
+
+  // Сценарии на выбранном режиме
+  function scenarios(inp, factors, defs, ov, regimeId) {
+    const mk = (id, name, src) => {
+      const r = F.runModel(src.inp, defs, ov, regimeId);
+      return { id, name, applied: src.applied, mult: src.mult || {}, kpi: r.kpi, available: r.available, unavailable: r.unavailable };
+    };
+    const base = { inp, applied: [], mult: {} };
+    return [
+      mk("PESS", "Пессимистичный", applyImpacts(inp, factors, "PESS")),
+      mk("EXP", "Ожидаемый (с учётом вероятностей)", applyImpacts(inp, factors, "EXP")),
+      mk("BASE", "Базовый (как введено)", base),
+      mk("OPT", "Оптимистичный", applyImpacts(inp, factors, "OPT")),
+    ];
+  }
+
+  // Проверки качества анализа — подсказки пользователю
+  function lint(factors) {
+    const w = [];
+    const sw = factors.filter(f => f.src === "SWOT");
+    for (const q of ["S", "W", "O", "T"]) if (!sw.some(f => f.q === q)) w.push(`В SWOT нет ни одного фактора «${SWOT_Q[q]}».`);
+    const linked = factors.filter(f => f.target && f.deltaPct);
+    if (!linked.length) w.push("Ни один фактор не связан с моделью — сценарии совпадут с базовым.");
+    const t = {};
+    for (const f of linked) (t[f.target] = t[f.target] || []).push(f);
+    for (const [k, list] of Object.entries(t)) {
+      const srcs = new Set(list.map(f => f.src));
+      if (srcs.size > 1) w.push(`«${TARGETS[k]}» меняют факторы и из SWOT, и из PEST — проверьте, не одно ли это событие (иначе влияние посчитается дважды).`);
+    }
+    for (const f of linked) {
+      if (!isFav(f) && ["price", "volume", "growthPct"].includes(f.target) && f.deltaPct > 0) w.push(`«${f.text}» — неблагоприятный фактор, но улучшает параметр «${TARGETS[f.target]}». Проверьте знак.`);
+      if (isFav(f) && ["varCostPct", "fixed", "salary", "capex", "delayDays", "loanRate"].includes(f.target) && f.deltaPct > 0) w.push(`«${f.text}» — благоприятный фактор, но ухудшает параметр «${TARGETS[f.target]}». Проверьте знак.`);
+      if (Math.abs(f.deltaPct) > 50) w.push(`«${f.text}»: влияние ${f.deltaPct}% очень большое — это точно не опечатка?`);
+    }
+    return w;
+  }
+
+  const api = { TARGETS, SWOT_Q, PEST_G, scoreSwot, scorePest, applyImpacts, scenarios, lint };
+  if (typeof module !== "undefined") module.exports = api; else root.Analysis = api;
+})(this);
+
+// Хранение проектов «Бизнес-калькулятор» · v0.1
+// Формат проекта + проверка + миграции + хранилище с адаптером (браузер сейчас, Android — потом).
+(function (root) {
+  "use strict";
+  const FORMAT = "biz-calc-project", SCHEMA = 1;
+  const KEY_INDEX = "bc_projects_index_v1", KEY_P = id => "bc_project_" + id;
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  function makeProject(name, data) {
+    const now = new Date().toISOString();
+    return { format: FORMAT, schema: SCHEMA, id: uid(), name: name || "Новый проект", createdAt: now, savedAt: now,
+      form: data.form || {}, factors: data.factors || [], tows: data.tows || { SO: "", ST: "", WO: "", WT: "" },
+      regime: data.regime || "AUTO", overrides: data.overrides || {} };
+  }
+
+  // Проверка и нормализация при импорте. Возвращает { project, warnings } или бросает Error.
+  function validate(obj) {
+    const w = [];
+    if (!obj || typeof obj !== "object") throw new Error("Файл не похож на проект.");
+    if (obj.format !== FORMAT) throw new Error("Это не файл проекта бизнес-калькулятора.");
+    let p = { ...obj };
+    if ((p.schema || 0) > SCHEMA) throw new Error(`Проект сохранён в более новой версии (схема ${p.schema}). Обновите приложение.`);
+    p = migrate(p);
+    if (typeof p.name !== "string" || !p.name.trim()) { p.name = "Импортированный проект"; w.push("У проекта не было названия."); }
+    if (!p.form || typeof p.form !== "object") { p.form = {}; w.push("Нет данных формы — поля будут пустыми."); }
+    if (!Array.isArray(p.factors)) { p.factors = []; w.push("Нет факторов SWOT/PEST."); }
+    p.factors = p.factors.filter(f => f && (f.src === "SWOT" || f.src === "PEST") && typeof f.q === "string");
+    p.tows = Object.assign({ SO: "", ST: "", WO: "", WT: "" }, p.tows || {});
+    if (typeof p.overrides !== "object" || !p.overrides) p.overrides = {};
+    for (const [k, v] of Object.entries(p.overrides)) if (!v || typeof v.value !== "number") { delete p.overrides[k]; w.push(`Правка параметра ${k} некорректна и пропущена.`); }
+    if (!p.id) p.id = uid();
+    return { project: p, warnings: w };
+  }
+
+  // Миграции схемы: v0 → v1 и т. д. Сейчас версия одна — заготовка.
+  function migrate(p) {
+    if (!p.schema) { p.schema = 1; }
+    return p;
+  }
+
+  // ---------- Хранилище ----------
+  // Адаптер: get(key) → string|null, set(key, str), del(key). Ошибки адаптера не роняют приложение.
+  function browserAdapter() {
+    try {
+      const ls = root.localStorage, t = "__bc_test";
+      ls.setItem(t, "1"); ls.removeItem(t);
+      return { name: "browser", get: k => ls.getItem(k), set: (k, v) => ls.setItem(k, v), del: k => ls.removeItem(k) };
+    } catch (e) { return null; }
+  }
+  function memoryAdapter() {
+    const m = new Map();
+    return { name: "memory", get: k => (m.has(k) ? m.get(k) : null), set: (k, v) => m.set(k, String(v)), del: k => m.delete(k) };
+  }
+
+  function createStore(adapter) {
+    const a = adapter || browserAdapter() || memoryAdapter();
+    const readIndex = () => { try { return JSON.parse(a.get(KEY_INDEX) || "[]"); } catch (e) { return []; } };
+    const writeIndex = idx => a.set(KEY_INDEX, JSON.stringify(idx));
+    return {
+      kind: a.name, // "browser" | "memory" | "android" и т. п.
+      list() { return readIndex().sort((x, y) => (y.savedAt || "").localeCompare(x.savedAt || "")); },
+      load(id) { const s = a.get(KEY_P(id)); if (!s) return null; try { return validate(JSON.parse(s)).project; } catch (e) { return null; } },
+      save(p) {
+        p.savedAt = new Date().toISOString();
+        a.set(KEY_P(p.id), JSON.stringify(p));
+        const idx = readIndex().filter(x => x.id !== p.id);
+        idx.push({ id: p.id, name: p.name, savedAt: p.savedAt });
+        writeIndex(idx);
+        return p;
+      },
+      remove(id) { a.del(KEY_P(id)); writeIndex(readIndex().filter(x => x.id !== id)); },
+      duplicate(id) {
+        const p = this.load(id); if (!p) return null;
+        const c = { ...JSON.parse(JSON.stringify(p)), id: uid(), name: p.name + " (копия)", createdAt: new Date().toISOString() };
+        return this.save(c);
+      }
+    };
+  }
+
+  const toJSON = p => JSON.stringify(p, null, 2);
+  const fromJSON = s => { let o; try { o = JSON.parse(s); } catch (e) { throw new Error("Текст не является корректным JSON."); } return validate(o); };
+
+  const api = { FORMAT, SCHEMA, makeProject, validate, createStore, memoryAdapter, toJSON, fromJSON, uid };
+  if (typeof module !== "undefined") module.exports = api; else root.ProjectStore = api;
+})(typeof window !== "undefined" ? window : this);
+
+
+const E=TaxEngine,F=FinModel,$=id=>document.getElementById(id);
+const fmt=x=>x==null||!isFinite(x)?"—":Math.round(x).toLocaleString("ru-RU");
+const fmtR=x=>x==null||!isFinite(x)?"—":fmt(x)+" ₽";
+const fmtM=x=>x==null?"—":(Math.abs(x)>=1e6?(x/1e6).toLocaleString("ru-RU",{maximumFractionDigits:2})+" млн ₽":fmtR(x));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const parse=s=>{s=String(s).replace(/\s/g,"").replace(",",".");return s===""?null:Number(s);};
+const SEASONS={"Без сезонности":[1,1,1,1,1,1,1,1,1,1,1,1],"Кафе (летний спад)":[.9,.9,1,1,1,.85,.8,.85,1.05,1.1,1.15,1.4],"Туризм (лето)":[.5,.5,.7,.8,1.1,1.5,1.7,1.6,1.1,.8,.6,1.1],"Образование (сентябрь)":[1.1,1.1,1.1,1,.9,.5,.4,.8,1.5,1.3,1.2,1.1]};
+const FIELDS=[
+ ["Продажи",[["price","Средний чек / цена, ₽"],["volume","Продаж в месяц (на старте мощности)"],["growthPct","Рост продаж, % в месяц"],["rampMonths","Выход на мощность, мес."],["delayDays","Отсрочка оплаты клиентов, дней"],["season","Сезонность","season"]]],
+ ["Затраты",[["varCostPct","Переменные затраты, % выручки"],["fixed","Постоянные расходы, ₽/мес (аренда, услуги…)"],["fixedIndexPct","Рост постоянных, % в год"]]],
+ ["Персонал",[["staff","Работников, чел."],["salary","Зарплата, ₽/мес (до НДФЛ)"],["salaryIndexPct","Индексация зарплаты, % в год"],["msp","ОКВЭД в перечне льготы МСП","chk"]]],
+ ["Инвестиции и финансирование",[["capex","Инвестиции на старте (оборудование, ремонт), ₽"],["lifeMonths","Срок службы оборудования, мес."],["ownFunds","Собственные средства, ₽"],["loanAmount","Кредит, ₽"],["loanRate","Ставка кредита, % годовых"],["loanTerm","Срок кредита, мес."]]],
+ ["Налоги",[["prevIncome","Доход за год до старта, ₽"],["physSharePct","Доля дохода от физлиц, %"],["vatExpSharePct","Доля расходов с входящим НДС, %"],["psnPotential","Потенциальный доход по патенту, ₽/год"],["usnRegionalIncome","Ставка УСН «Доходы» в регионе, % (пусто — 6)"],["usnRegionalProfit","Ставка УСН «Д−Р» в регионе, % (пусто — 15)"],["resale","Перепродажа товаров","chk"],["ausnRegion","АУСН введена в регионе","chk"]]],
+ ["Горизонт и ставка",[["startYear","Год старта","sel",[2026,2027]],["horizon","Горизонт, мес.","sel",[12,24,36,60]],["discountRatePct","Ставка дисконтирования, % годовых"]]],
+];
+const PRESETS={
+ "Кофейня":{startYear:2026,horizon:36,price:380,volume:3300,growthPct:0.5,rampMonths:6,delayDays:0,season:"Кафе (летний спад)",varCostPct:33,fixed:260000,fixedIndexPct:7,staff:4,salary:55000,salaryIndexPct:8,msp:true,capex:3500000,lifeMonths:60,ownFunds:2000000,loanAmount:2000000,loanRate:24,loanTerm:36,prevIncome:0,physSharePct:100,vatExpSharePct:30,psnPotential:1500000,resale:false,ausnRegion:true,discountRatePct:25},
+ "Онлайн-услуги, один ИП":{startYear:2026,horizon:24,price:15000,volume:12,growthPct:2,rampMonths:3,delayDays:15,season:"Без сезонности",varCostPct:10,fixed:25000,fixedIndexPct:5,staff:0,salary:0,salaryIndexPct:0,msp:false,capex:200000,lifeMonths:36,ownFunds:250000,loanAmount:0,loanRate:0,loanTerm:12,prevIncome:0,physSharePct:70,vatExpSharePct:0,psnPotential:800000,resale:false,ausnRegion:true,discountRatePct:20},
+ "Мини-производство":{startYear:2026,horizon:60,price:1200,volume:2500,growthPct:1,rampMonths:9,delayDays:45,season:"Без сезонности",varCostPct:48,fixed:350000,fixedIndexPct:6,staff:7,salary:60000,salaryIndexPct:7,msp:true,capex:9000000,lifeMonths:84,ownFunds:9000000,loanAmount:6000000,loanRate:22,loanTerm:48,prevIncome:0,physSharePct:10,vatExpSharePct:70,psnPotential:0,resale:false,ausnRegion:true,discountRatePct:25},
+};
+let OVR={},tab="sum",regime="AUTO",inp={};
+const DEFAULT=PRESETS["Кофейня"];
+function buildForm(){
+ $("form").innerHTML="<h2>Данные проекта</h2>"+FIELDS.map(([g,fs],i)=>`<details class="g" ${i<2?"open":""}><summary>${g}</summary><div class="grid" style="margin-top:8px">`+fs.map(([k,l,t,opts])=>{
+  if(t==="chk")return`<div class="chk"><input type="checkbox" id="f_${k}"><label for="f_${k}">${l}</label></div>`;
+  if(t==="sel")return`<div><label>${l}</label><select id="f_${k}">${opts.map(o=>`<option>${o}</option>`).join("")}</select></div>`;
+  if(t==="season")return`<div><label>${l}</label><select id="f_${k}">${Object.keys(SEASONS).map(o=>`<option>${o}</option>`).join("")}</select></div>`;
+  return`<div><label>${l}</label><input type="text" inputmode="decimal" id="f_${k}"></div>`;}).join("")+`</div></details>`).join("")+`<div id="fErr" class="err"></div>`;
+ $("form").addEventListener("input",calc);$("form").addEventListener("change",calc);
+}
+function setForm(p){for(const[,fs]of FIELDS)for(const[k,,t]of fs){const el=$("f_"+k);if(t==="chk")el.checked=k==="ausnRegion"?p[k]!==false:!!p[k];else if(t==="sel"||t==="season")el.value=String(p[k]);else el.value=p[k]==null?"":Number(p[k]).toLocaleString("ru-RU");}calc();}
+function readForm(){const o={},bad=[];for(const[,fs]of FIELDS)for(const[k,l,t]of fs){const el=$("f_"+k);
+  if(t==="chk")o[k]=el.checked;else if(t==="sel")o[k]=+el.value;else if(t==="season")o.season=SEASONS[el.value];
+  else{const v=parse(el.value);if(v!=null&&(isNaN(v)||v<0))bad.push(l);o[k]=v==null||isNaN(v)?null:v;}}
+ for(const k of["price","volume","growthPct","rampMonths","delayDays","varCostPct","fixed","fixedIndexPct","staff","salary","salaryIndexPct","capex","lifeMonths","ownFunds","loanAmount","loanRate","loanTerm","prevIncome","vatExpSharePct","psnPotential","discountRatePct"])if(o[k]==null)o[k]=0;
+ if(o.physSharePct==null)o.physSharePct=100;o.staff=Math.round(o.staff);if(!o.loanTerm)o.loanTerm=1;
+ if(o.varCostPct>100)bad.push("переменные затраты больше 100%");
+ return{o,bad};}
+function calc(){
+ const{o,bad}=readForm();inp=o;$("fErr").textContent=bad.length?"Проверьте: "+bad.join("; "):"";
+ let cmp;try{cmp=F.compareOverHorizon(o,DEFS,EFF());}catch(e){$("out").innerHTML=`<div class="err">${esc(e.message)}</div>`;return;}
+ const avail=cmp.filter(x=>x.available);
+ const sel=$("regime"),cur=regime;
+ sel.innerHTML=`<option value="AUTO">Лучший доступный${avail[0]?" — "+esc(avail[0].regimeName):""}</option>`+cmp.map(x=>`<option value="${x.regimeId}">${esc(x.regimeName)}${x.available?"":" (недоступен)"}</option>`).join("");
+ sel.value=cur;
+ const id=cur==="AUTO"?(avail[0]?avail[0].regimeId:"OSNO"):cur;
+ const R=cmp.find(x=>x.regimeId===id);
+ $("regNote").innerHTML=R.available?"":`<span class="err">Режим недоступен — ${esc(R.unavailable)}. Расчёт показан для сравнения.</span>`;
+ window._R=R;window._cmp=cmp;window._id=id;render();
+}
+function render(){
+ const T={sum:"Итоги",reg:"Режимы",pnl:"БДР",cf:"БДДС",sens:"Чувствительность",swot:"SWOT",pest:"PEST",scen:"Сценарии"};
+ $("tabs").innerHTML=Object.entries(T).map(([k,v])=>`<button data-t="${k}" class="${k===tab?"on":""}">${v}</button>`).join("");
+ const R=window._R;if(!R)return;
+ $("out").innerHTML=({sum:vSum,reg:vReg,pnl:vPnl,cf:vCf,sens:vSens,swot:vSwot,pest:vPest,scen:vScen})[tab](R);
+}
+function vSum(R){
+ const k=R.kpi,w=[];
+ if(k.cashGapMonth)w.push(`Кассовый разрыв в ${k.cashGapMonth}-м месяце: денег на счёте не хватает (минимум ${fmtR(k.cashMin)}). Нужно больше собственных средств или кредита.`);
+ if(k.irrMultiple)w.push("Поток меняет знак несколько раз — IRR может быть не единственной, ориентируйтесь на NPV.");
+ if(k.npv<0)w.push("NPV отрицательный: при выбранной ставке дисконтирования проект не окупает вложения.");
+ const card=(v,l,cls="")=>`<div class="k ${cls}"><b>${v}</b><span>${l}</span></div>`;
+ const pp=x=>x==null?"не окупается":x===0?"сразу":x+" мес.";
+ return(w.length?`<div class="warn" style="margin-bottom:8px">${w.map(esc).join("<br>")}</div>`:"")+
+ `<div class="kpis">${card(fmtM(k.npv),"NPV (чистая приведённая стоимость)",k.npv>=0?"good":"badv")}${card(k.irrYear==null?"—":k.irrYear>1000?"> 1000 %":k.irrYear.toLocaleString("ru-RU",{maximumFractionDigits:1})+" %","IRR, годовых")}${card(pp(k.pp),"Срок окупаемости")}${card(pp(k.dpp),"Дисконт. срок окупаемости")}
+ ${card(k.pi==null?"—":k.pi.toLocaleString("ru-RU",{maximumFractionDigits:2}),"PI (индекс доходности)")}${card(fmtM(k.maxNeed),"Макс. потребность в деньгах")}${card(k.beRevMonth?fmtM(k.beRevMonth):"—","Точка безубыточности, выручка/мес")}${card(k.beUnitsMonth?fmt(k.beUnitsMonth)+" прод.":"—","…то же в продажах/мес")}
+ ${card(fmtM(k.totalTaxes),"Налоги и взносы за горизонт")}${card(fmtM(k.netTotal),"Чистая прибыль за горизонт")}${card(k.loanPay?fmtR(k.loanPay):"—","Платёж по кредиту/мес")}${card(esc(R.regimeName),"Режим")}</div>`+
+ chart(R)+`<div class="small">Синяя линия — накопленный поток проекта (без кредита): где пересекает ноль — окупаемость. Зелёная — остаток денег на счёте с учётом кредита: ниже нуля — кассовый разрыв.</div>`;
+}
+function chart(R){
+ const M=R.months,W=760,H=220,pl=58,pr=10,pt=10,pb=24;
+ const a=M.map(m=>m.cumCF),b=M.map(m=>m.cashEnd),all=[...a,...b,0];
+ const mn=Math.min(...all),mx=Math.max(...all),sp=mx-mn||1;
+ const x=i=>pl+(W-pl-pr)*i/(M.length-1||1),y=v=>pt+(H-pt-pb)*(1-(v-mn)/sp);
+ const line=(arr,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2" points="${arr.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ")}"/>`;
+ let ticks="";for(let k=0;k<=4;k++){const v=mn+sp*k/4;ticks+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end">${(v/1e6).toLocaleString("ru-RU",{maximumFractionDigits:1})} млн</text>`;}
+ let xt="";for(let i=0;i<M.length;i+=12)xt+=`<text x="${x(i)}" y="${H-6}" text-anchor="start">${M[i].year}</text><line x1="${x(i)}" x2="${x(i)}" y1="${pt}" y2="${H-pb}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;margin-top:12px" role="img" aria-label="Накопленный денежный поток">${ticks}${xt}<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--ink)" stroke-width="1"/>${line(a,"var(--s1)")}${line(b,"var(--s2)")}</svg>`;
+}
+function vReg(){
+ const c=window._cmp;const best=c.find(x=>x.available);
+ return`<div class="tw"><table><tr><th>Режим</th><th>NPV</th><th>Налоги и взносы за горизонт</th><th>Чистая прибыль</th><th>Доступность</th></tr>`+c.map(x=>`<tr><td class="${x===best?"best":""}">${esc(x.regimeName)}</td><td class="${x.kpi.npv<0?"neg":""}">${fmtR(x.kpi.npv)}</td><td>${fmtR(x.kpi.totalTaxes)}</td><td>${fmtR(x.kpi.netTotal)}</td><td style="text-align:left;white-space:normal;max-width:280px">${x.available?"доступен":`<span class="err">${esc(x.unavailable)}</span>`}</td></tr>`).join("")+`</table></div>
+ <div class="small" style="margin-top:6px">Режим проверяется по каждому году горизонта. Если в каком-то году условия нарушены (лимит дохода, численность, конец эксперимента АУСН/НПД), режим помечается недоступным — в жизни пришлось бы перейти на другой.</div>`;
+}
+function vPnl(R){
+ const P=R.pnl,rows=[["Выручка","rev"],["НДС к уплате","vat",-1],["Выручка без НДС","netRev",0,"sub"],["Переменные затраты","varC",-1],["Маржинальный доход","margin",0,"sub"],["Постоянные расходы","fixed",-1],["Зарплата","sal",-1],["Взносы за работников","pay",-1],["Взносы ИП за себя","ip",-1],["EBITDA","ebitda",0,"sub"],["Амортизация","amort",-1],["EBIT","ebit",0,"sub"],["Проценты по кредиту","interest",-1],["Прибыль до налога","ebt",0,"sub"],["Налог режима","tax",-1],["Чистая прибыль","net",0,"tot"]];
+ return`<div class="tw"><table><tr><th>БДР, ₽</th>${P.map(p=>`<th>${p.year}</th>`).join("")}<th>Итого</th></tr>`+rows.map(([n,k,s,cls])=>{const v=P.map(p=>s===-1?-p[k]:p[k]);const t=v.reduce((a,b)=>a+b,0);return`<tr class="${cls||""}"><td>${n}</td>${v.map(x=>`<td class="${x<0?"neg":""}">${fmt(x)}</td>`).join("")}<td class="${t<0?"neg":""}">${fmt(t)}</td></tr>`;}).join("")+
+ `<tr><td>Рентабельность продаж (ROS)</td>${P.map(p=>`<td>${p.ros.toLocaleString("ru-RU",{maximumFractionDigits:1})} %</td>`).join("")}<td></td></tr><tr><td>Налоговая нагрузка, % поступлений</td>${P.map(p=>`<td>${p.burdenPct.toLocaleString("ru-RU",{maximumFractionDigits:1})} %</td>`).join("")}<td></td></tr></table></div>
+ <div class="small" style="margin-top:6px">Метод начисления. НДС вычтен из выручки как «к уплате» (упрощение). Взносы ИП показаны расходом, потому что для ИП это затраты бизнеса.</div>`;
+}
+let cfMonthly=false;
+function vCf(R){
+ const M=R.months,cols=cfMonthly?M.map(m=>({l:`${String(m.mi+1).padStart(2,"0")}.${String(m.year).slice(2)}`,ms:[m]})):[...new Set(M.map(m=>m.yi))].map(yi=>({l:String(M.find(m=>m.yi===yi).year),ms:M.filter(m=>m.yi===yi)}));
+ const s=(ms,f)=>ms.reduce((a,m)=>a+f(m),0);
+ const rows=[["Поступления от клиентов",m=>m.cashIn],["Оплата переменных затрат",m=>-m.varCost],["Постоянные расходы",m=>-m.fixed],["Зарплата",m=>-m.salaries],["Взносы за работников",m=>-m.payrollPay],["Налог режима",m=>-m.taxPay],["НДС",m=>-m.vatPay],["Взносы ИП за себя",m=>-m.ipPay],["Операционный поток",m=>m.opCF,"sub"],["Инвестиции",m=>m.invCF],["Инвестиционный поток",m=>m.invCF,"sub"],["Собственные средства и кредит",m=>m.t===0?(inp.ownFunds||0)+(inp.loanAmount||0):0],["Погашение кредита",m=>-m.principal],["Проценты",m=>-m.interest],["Финансовый поток",m=>m.finCF,"sub"],["Остаток на конец",null,"tot"]];
+ return`<div style="margin-bottom:6px"><button class="btn" id="cfT">${cfMonthly?"Показать по годам":"Показать по месяцам"}</button></div><div class="tw"><table><tr><th>БДДС, ₽</th>${cols.map(c=>`<th>${c.l}</th>`).join("")}</tr>`+rows.map(([n,f,cls])=>`<tr class="${cls||""}"><td>${n}</td>${cols.map(c=>{const v=f?s(c.ms,f):c.ms[c.ms.length-1].cashEnd;return`<td class="${v<-0.5?"neg":""}">${fmt(v)}</td>`;}).join("")}</tr>`).join("")+`</table></div>
+ <div class="small" style="margin-top:6px">Кассовый метод: деньги — в месяце фактической оплаты, налоги — в месяцах уплаты.</div>`;
+}
+function vSens(R){
+ const S=F.sensitivity(inp,DEFS,EFF(),window._id);if(!S.length)return"<div class='small'>Нет факторов для анализа.</div>";
+ const base=S[0].base,ext=Math.max(...S.map(s=>Math.max(Math.abs(s.lo-base),Math.abs(s.hi-base))),1);
+ const pos=v=>50+50*(v-base)/ext;
+ return`<div class="small" style="margin-bottom:8px">Как меняется NPV (база ${fmtM(base)}), если фактор отклонится на ±20%. Красное — неблагоприятная сторона, зелёное — благоприятная. Сверху — факторы, от которых проект зависит сильнее всего.</div><div class="tor">`+
+ S.map(s=>{const a=Math.min(s.lo,s.hi),b=Math.max(s.lo,s.hi),bad=Math.min(pos(s.lo),pos(s.hi)),good=Math.max(pos(s.lo),pos(s.hi));
+  const thr=s.threshold==null?"NPV не меняет знак в диапазоне 0–300%":`NPV = 0 при ${s.threshold<1?"снижении":"росте"} на ${Math.abs((s.threshold-1)*100).toLocaleString("ru-RU",{maximumFractionDigits:0})}%`;
+  return`<div>${esc(s.name)}</div><div><div class="tb"><i class="lo" style="left:${bad}%;width:${50-bad}%"></i><i class="hi" style="left:50%;width:${good-50}%"></i><span class="mid" style="left:50%"></span></div><div class="small">${fmtM(a)} … ${fmtM(b)} · ${thr}</div></div>`;}).join("")+`</div>`;
+}
+
+// ---------- SWOT / PEST / сценарии ----------
+const A=Analysis;let FACTORS=[],TOWS={SO:"",ST:"",WO:"",WT:""},fid=1;
+const PROBS=[0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1];
+const FPRESETS={
+ "Кофейня":[
+  ["SWOT","S","Помещение на проходной улице у метро",5],["SWOT","S","Бариста с опытом и своей аудиторией",3],
+  ["SWOT","W","Нет опыта управления общепитом",4,null,"volume",-10],["SWOT","W","Маленький зал — 12 мест",2],
+  ["SWOT","O","Доставка через агрегаторы",3,0.5,"volume",15],["SWOT","O","Корпоративные заказы у соседних офисов",3,0.3,"volume",8],
+  ["SWOT","T","Сетевая кофейня откроется рядом",4,0.4,"price",-10],["SWOT","T","Арендодатель поднимет ставку",4,0.5,"fixed",15],
+  ["PEST","T","Рост закупочных цен на кофе и молоко","E",3,0.6,"varCostPct",10],["PEST","T","Ключевая ставка останется высокой","E",2,0.5,"loanRate",15],
+  ["PEST","T","Снижение реальных доходов населения","S",2,0.3,"volume",-8],["PEST","O","Рост привычки брать кофе с собой","S",2,0.6],
+  ["PEST","T","Обязательная маркировка молочной продукции","L",1,0.9],["PEST","O","Онлайн-кассы и QR-оплата без комиссии","T",1,0.5,"varCostPct",-1]],
+ "Онлайн-услуги, один ИП":[
+  ["SWOT","S","Портфолио и отзывы",4],["SWOT","W","Всё держится на одном человеке",4,null,"volume",-15],
+  ["SWOT","O","Выход на маркетплейс фриланса",3,0.5,"volume",20],["SWOT","T","Демпинг конкурентов и ИИ-сервисов",4,0.5,"price",-15],
+  ["PEST","T","Клиенты-компании требуют работать с НДС","L",2,0.3,"price",-5],["PEST","O","Спрос на цифровизацию малого бизнеса","E",2,0.6,"growthPct",30]],
+ "Мини-производство":[
+  ["SWOT","S","Своя технология и оборудование",5],["SWOT","W","Зависимость от двух крупных покупателей",4,null,"delayDays",30],
+  ["SWOT","O","Импортозамещение — уход иностранных поставщиков",4,0.6,"volume",15],["SWOT","T","Рост цен на сырьё",4,0.6,"varCostPct",10],
+  ["SWOT","T","Дефицит рабочих",3,0.7,"salary",15],["PEST","T","Высокая ключевая ставка","E",3,0.6,"loanRate",15],
+  ["PEST","O","Региональные субсидии на оборудование","P",2,0.3,"capex",-20],["PEST","T","Ужесточение экологических требований","Ecol",1,0.4,"capex",5]],
+};
+function loadFactors(name){fid=1;FACTORS=(FPRESETS[name]||[]).map(a=>a[0]==="SWOT"?{id:fid++,src:"SWOT",q:a[1],text:a[2],weight:a[3],prob:a[4]??0.5,target:a[5]||"",deltaPct:a[6]||0}:{id:fid++,src:"PEST",q:a[1],text:a[2],group:a[3],impact:a[4],prob:a[5],target:a[6]||"",deltaPct:a[7]||0});TOWS={SO:"",ST:"",WO:"",WT:""};}
+const opt=(arr,cur,lab=x=>x)=>arr.map(v=>`<option value="${v}" ${String(v)===String(cur)?"selected":""}>${lab(v)}</option>`).join("");
+function frow(f){
+ const ext=f.src==="PEST"||f.q==="O"||f.q==="T";
+ return`<div class="fr" data-id="${f.id}"><input class="txt" data-k="text" value="${esc(f.text)}" placeholder="Фактор">
+ ${f.src==="SWOT"?`<select data-k="weight" title="Важность 1–5">${opt([1,2,3,4,5],f.weight,v=>"вес "+v)}</select>`:`<select data-k="impact" title="Сила влияния 1–3">${opt([1,2,3],f.impact,v=>"сила "+v)}</select>`}
+ ${ext?`<select data-k="prob" title="Вероятность">${opt(PROBS,f.prob,v=>Math.round(v*100)+"%")}</select>`:"<span></span>"}
+ ${f.src==="PEST"?`<select data-k="q" style="grid-column:1/-1">${opt(["O","T"],f.q,v=>v==="O"?"возможность":"угроза")}</select>`:""}
+ <div class="lnk"><select data-k="target"><option value="">— не влияет на модель —</option>${opt(Object.keys(A.TARGETS),f.target,v=>"меняет: "+A.TARGETS[v])}</select>
+ <input data-k="deltaPct" inputmode="decimal" value="${f.target?String(f.deltaPct).replace(".",","):""}" placeholder="±%" ${f.target?"":"disabled"}><button class="x" data-del="${f.id}" title="Удалить">×</button></div></div>`;
+}
+function vSwot(){
+ const s=A.scoreSwot(FACTORS);
+ const quad=q=>`<div class="q ${q}"><h3><span>${A.SWOT_Q[q]}</span><span>${s.score[q].toLocaleString("ru-RU",{maximumFractionDigits:1})}</span></h3>${FACTORS.filter(f=>f.src==="SWOT"&&f.q===q).map(frow).join("")}<button class="add" data-add="SWOT:${q}">+ добавить</button></div>`;
+ return`<div class="hint">Вес — насколько фактор важен (1–5). Для возможностей и угроз — вероятность. Чтобы фактор участвовал в сценариях, выберите, какой параметр модели он меняет и на сколько процентов (минус — уменьшает).</div>
+ <div class="sw">${["S","W","O","T"].map(quad).join("")}</div>
+ <div class="pos" id="swPos"><b>${s.pos.code} · ${s.pos.name}</b><div class="small">Внутренний баланс S − W = ${s.internal.toLocaleString("ru-RU",{maximumFractionDigits:1})}, внешний O − T = ${s.external.toLocaleString("ru-RU",{maximumFractionDigits:1})}</div><div style="margin-top:4px">${s.pos.text}</div></div>
+ <h2 style="margin-top:12px">Матрица стратегий (TOWS)</h2><div class="sw">${[["SO","Сильные × возможности — наступать"],["ST","Сильные × угрозы — защищаться"],["WO","Слабые × возможности — укрепляться"],["WT","Слабые × угрозы — выживать"]].map(([k,l])=>`<div><label>${l}</label><textarea data-tows="${k}" rows="2">${esc(TOWS[k])}</textarea></div>`).join("")}</div>`;
+}
+function vPest(){
+ const p=A.scorePest(FACTORS);const mx=Math.max(...Object.values(p.byGroup),0.0001);
+ return`<div class="hint">PESTEL — внешняя среда. Сила влияния 1–3, вероятность 10–100%. Значимость = сила × вероятность.</div>
+ ${Object.keys(A.PEST_G).map(g=>`<div class="q"><h3><span>${A.PEST_G[g]}</span><span>${p.byGroup[g].toLocaleString("ru-RU",{maximumFractionDigits:2})}</span></h3>${FACTORS.filter(f=>f.src==="PEST"&&f.group===g).map(frow).join("")}<button class="add" data-add="PEST:${g}">+ добавить</button></div>`).join("")}
+ <h2 style="margin-top:12px">Самые значимые факторы</h2><div class="gb">${p.list.slice(0,7).map(f=>`<span>${esc(A.PEST_G[f.group])}</span><div><div class="bar"><i style="width:${(f.score/(p.list[0].score||1)*100).toFixed(0)}%;background:${f.q==="T"?"var(--bad)":"var(--ok)"}"></i></div><div class="small">${esc(f.text)}</div></div><span>${Math.round(f.share*100)}%</span>`).join("")}</div>`;
+}
+function vScen(){
+ const S=A.scenarios(inp,FACTORS,DEFS,EFF(),window._id),L=A.lint(FACTORS);
+ const pp=x=>x==null?"не окуп.":x+" мес.";
+ const tgt=Object.keys(A.TARGETS).filter(k=>S.some(s=>s.mult[k]));
+ return(L.length?`<div class="warn" style="margin-bottom:8px">${L.map(esc).join("<br>")}</div>`:"")+
+ `<div class="tw"><table><tr><th>Сценарий (${esc(window._R.regimeName)})</th><th>NPV</th><th>IRR</th><th>Окупаемость</th><th>Мин. остаток</th><th>Кассовый разрыв</th></tr>`+
+ S.map(s=>`<tr class="${s.id==="BASE"?"sub":""}"><td>${s.name}</td><td class="${s.kpi.npv<0?"neg":""}">${fmtM(s.kpi.npv)}</td><td>${s.kpi.irrYear==null?"—":s.kpi.irrYear>1000?">1000%":s.kpi.irrYear.toFixed(1)+"%"}</td><td>${pp(s.kpi.pp)}</td><td class="${s.kpi.cashMin<0?"neg":""}">${fmtM(s.kpi.cashMin)}</td><td>${s.kpi.cashGapMonth?s.kpi.cashGapMonth+"-й мес.":"нет"}</td></tr>`).join("")+`</table></div>
+ ${tgt.length?`<h2 style="margin-top:12px">Как меняются параметры</h2><div class="tw"><table><tr><th>Параметр</th>${S.filter(s=>s.id!=="BASE").map(s=>`<th>${s.name.split(" ")[0]}</th>`).join("")}</tr>${tgt.map(k=>`<tr><td>${A.TARGETS[k]}</td>${S.filter(s=>s.id!=="BASE").map(s=>{const m=s.mult[k];return`<td class="${m&&m<1&&["price","volume","growthPct"].includes(k)||m>1&&!["price","volume","growthPct"].includes(k)?"neg":""}">${m?((m-1)*100>0?"+":"")+((m-1)*100).toLocaleString("ru-RU",{maximumFractionDigits:1})+"%":"—"}</td>`;}).join("")}</tr>`).join("")}</table></div>`:""}
+ <div class="small" style="margin-top:6px">Пессимистичный — сработали все угрозы и слабости. Оптимистичный — все возможности и сильные стороны. Ожидаемый — каждое влияние умножено на вероятность (у слабых и сильных сторон вероятность 100%). Несколько влияний на один параметр перемножаются.${S[0].kpi.npv<0?' <b style="color:var(--bad)">В пессимистичном сценарии проект убыточен — стоит заранее решить, что делать, если угрозы сработают.</b>':""}</div>`;
+}
+function swUpdateScore(){const box=document.getElementById("swPos");if(box&&tab==="swot"){const s=A.scoreSwot(FACTORS);box.innerHTML=`<b>${s.pos.code} · ${s.pos.name}</b><div class="small">Внутренний баланс S − W = ${s.internal.toLocaleString("ru-RU",{maximumFractionDigits:1})}, внешний O − T = ${s.external.toLocaleString("ru-RU",{maximumFractionDigits:1})}</div><div style="margin-top:4px">${s.pos.text}</div>`;}}
+$("out").addEventListener("input",e=>{
+ const t=e.target;if(t.dataset.tows){TOWS[t.dataset.tows]=t.value;return;}
+ const row=t.closest(".fr");if(!row)return;const f=FACTORS.find(x=>x.id===+row.dataset.id);if(!f)return;const k=t.dataset.k;
+ if(k==="text")f.text=t.value;else if(k==="deltaPct"){const v=parse(t.value);f.deltaPct=v==null||isNaN(v)?0:v;}
+});
+$("out").addEventListener("change",e=>{
+ const t=e.target,row=t.closest(".fr");if(!row)return;const f=FACTORS.find(x=>x.id===+row.dataset.id);if(!f)return;const k=t.dataset.k;
+ if(["weight","impact"].includes(k))f[k]=+t.value;else if(k==="prob")f.prob=+t.value;else if(k==="q")f.q=t.value;else if(k==="target"){f.target=t.value;if(!f.target)f.deltaPct=0;}
+ else if(k==="text"||k==="deltaPct")return;
+ render();
+});
+$("out").addEventListener("click",e=>{
+ const a=e.target.dataset.add,d=e.target.dataset.del;
+ if(a){const[src,x]=a.split(":");FACTORS.push(src==="SWOT"?{id:fid++,src,q:x,text:"",weight:3,prob:0.5,target:"",deltaPct:0}:{id:fid++,src,q:"T",group:x,text:"",impact:2,prob:0.5,target:"",deltaPct:0});render();
+   const rows=document.querySelectorAll(".fr input.txt");rows[rows.length-1]&&[...rows].find(r=>r.closest(".fr").dataset.id==String(fid-1))?.focus();}
+ if(d){FACTORS=FACTORS.filter(f=>f.id!==+d);render();}
+});
+$("out").addEventListener("input",()=>{if(tab==="swot")swUpdateScore();});
+
+
+// ---------- Проекты ----------
+const PS=ProjectStore,STORE=PS.createStore();
+const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+// правки справочника из экрана «Параметры» (M0, уровень «для всех проектов»); правки проекта — поверх
+function m0User(){try{const o=JSON.parse(localStorage.getItem("m0_overrides_v1")||"{}");return o.USER||{};}catch(e){return{};}}
+function EFF(){return Object.assign({},m0User(),OVR);}
+async function nativeSave(name,txt){const P=window.Capacitor.Plugins;const path=(name||"project").replace(/[\\/:*?"<>|]/g,"_")+".json";
+ const r=await P.Filesystem.writeFile({path,data:txt,directory:"CACHE",encoding:"utf8"});await P.Share.share({title:path,url:r.uri,dialogTitle:"Сохранить проект"});}let CUR=null,saveT=null,lastSaved=null;
+function getFormRaw(){const o={};for(const[,fs]of FIELDS)for(const[k,,tp]of fs){const el=$("f_"+k);o[k]=tp==="chk"?el.checked:el.value;}return o;}
+function setFormRaw(o){for(const[,fs]of FIELDS)for(const[k,,tp]of fs){const el=$("f_"+k);if(!(k in o))continue;if(tp==="chk")el.checked=!!o[k];else el.value=o[k];}calc();}
+function snapshot(){if(!CUR)return;CUR.name=$("projName").value.trim()||"Без названия";CUR.form=getFormRaw();CUR.factors=JSON.parse(JSON.stringify(FACTORS));CUR.tows={...TOWS};CUR.regime=regime;CUR.overrides=OVR;}
+function scheduleSave(){if(!CUR)return;clearTimeout(saveT);status("Изменено…");saveT=setTimeout(saveNow,700);}
+function saveNow(){if(!CUR)return;snapshot();try{STORE.save(CUR);lastSaved=new Date();}catch(e){status("Не удалось сохранить: "+(e.message||e)+". Сохраните через «Экспорт».",true);return;}refreshList();status();}
+function status(txt,bad){const el=$("pStatus");const mem=STORE.kind==="memory"?" Хранилище браузера недоступно — проект живёт до закрытия страницы, сохраняйте через «Экспорт».":"";
+ el.style.color=bad||mem?"var(--warn)":"";el.textContent=(txt||(lastSaved?"Сохранено в "+lastSaved.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})+" · автосохранение":""))+mem;}
+function refreshList(){const L=STORE.list();$("projSel").innerHTML=L.map(x=>`<option value="${x.id}" ${CUR&&x.id===CUR.id?"selected":""}>${esc(x.name)}</option>`).join("")||"<option>—</option>";}
+function openProject(p){CUR=p;$("projName").value=p.name;FACTORS=p.factors||[];fid=FACTORS.reduce((m,f)=>Math.max(m,f.id||0),0)+1;TOWS=Object.assign({SO:"",ST:"",WO:"",WT:""},p.tows);regime=p.regime||"AUTO";OVR=p.overrides||{};
+ $("m0msg").textContent=Object.keys(OVR).length?"Правок параметров в проекте: "+Object.keys(OVR).length:"";setFormRaw(p.form);refreshList();status();}
+function newFromTemplate(name){clearTimeout(saveT);loadFactors(name);regime="AUTO";OVR={};setForm(PRESETS[name]);const p=PS.makeProject(name,{form:getFormRaw(),factors:FACTORS,tows:TOWS});CUR=p;$("projName").value=p.name;saveNow();}
+function sheet(html){$("shBox").innerHTML=html;$("sh").classList.add("on");}
+function closeSheet(){$("sh").classList.remove("on");}
+$("sh").onclick=e=>{if(e.target.id==="sh")closeSheet();};
+$("projSel").onchange=e=>{const id=e.target.value;saveNow();const p=STORE.load(id);if(p)openProject(p);};
+$("projName").oninput=scheduleSave;
+$("pNew").onclick=()=>{saveNow();newFromTemplate("Кофейня");$("projName").value="Новый проект";saveNow();$("projName").focus();$("projName").select();};
+$("pDup").onclick=()=>{saveNow();const c=STORE.duplicate(CUR.id);if(c)openProject(c);};
+$("pDel").onclick=()=>sheet(`<h3>Удалить проект «${esc(CUR.name)}»?</h3><div class="small">Это нельзя отменить. Если проект может понадобиться — сначала сделайте экспорт.</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn" id="dC">Отмена</button><button class="btn pri" id="dOk" style="background:var(--bad);border-color:var(--bad)">Удалить</button></div>`)
+ ||($("dC").onclick=closeSheet,$("dOk").onclick=()=>{clearTimeout(saveT);STORE.remove(CUR.id);closeSheet();const L=STORE.list();if(L.length)openProject(STORE.load(L[0].id));else newFromTemplate("Кофейня");});
+$("pExp").onclick=()=>{saveNow();const txt=PS.toJSON(CUR);sheet(`<h3>Экспорт проекта</h3><div class="small">${NATIVE?"«Сохранить файл» откроет меню: Файлы, Диск, мессенджер. Или ":""}Скопируйте и сохраните в файл <code>${esc(CUR.name)}.json</code> — его можно открыть через «Импорт» на другом устройстве или в Android-версии.</div><textarea id="xT" rows="12" readonly style="margin-top:8px;font:12px ui-monospace,Menlo,monospace">${esc(txt)}</textarea><div id="xM" class="small"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" id="xC">Закрыть</button>${NATIVE?'<button class="btn" id="xSv">Сохранить файл…</button>':""}<button class="btn pri" id="xCp">Копировать</button></div>`);
+ if(NATIVE)$("xSv").onclick=async()=>{try{await nativeSave(CUR.name,$("xT").value);$("xM").textContent="Готово.";}catch(e){$("xM").textContent="Не удалось сохранить: "+(e.message||e);}};
+ $("xC").onclick=closeSheet;$("xCp").onclick=async()=>{const ta=$("xT");try{await navigator.clipboard.writeText(ta.value);$("xM").textContent="Скопировано.";}catch(e){ta.select();$("xM").textContent="Буфер обмена недоступен — текст выделен, скопируйте вручную.";}};};
+$("pImp").onclick=()=>{sheet(`<h3>Импорт проекта</h3><div class="small">Выберите файл .json или вставьте текст экспорта. Проект добавится в список, текущий не изменится.</div><input type="file" id="iF" accept=".json,application/json" style="margin:10px 0"><textarea id="iT" rows="8" style="font:12px ui-monospace,Menlo,monospace" placeholder='{"format":"biz-calc-project", …}'></textarea><div id="iM" class="small"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn" id="iC">Отмена</button><button class="btn pri" id="iOk">Импортировать</button></div>`);
+ $("iF").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>$("iT").value=r.result;r.readAsText(f);};
+ $("iC").onclick=closeSheet;
+ $("iOk").onclick=()=>{try{saveNow();const{project:p,warnings:w}=PS.fromJSON($("iT").value);if(STORE.list().some(x=>x.id===p.id)){p.id=PS.uid();p.name+=" (импорт)";}STORE.save(p);openProject(p);closeSheet();status("Импортировано"+(w.length?": "+w.join(" "):""));}catch(e){$("iM").innerHTML=`<span class="err">${esc(e.message)}</span>`;}};};
+$("form").addEventListener("input",scheduleSave);$("form").addEventListener("change",scheduleSave);
+$("out").addEventListener("input",scheduleSave);$("out").addEventListener("change",scheduleSave);
+$("out").addEventListener("click",e=>{if(e.target.dataset.add||e.target.dataset.del)scheduleSave();});
+
+$("tabs").onclick=e=>{const t=e.target.dataset.t;if(t){tab=t;render();}};
+$("out").addEventListener("click",e=>{if(e.target.id==="cfT"){cfMonthly=!cfMonthly;render();}});
+$("regime").onchange=e=>{regime=e.target.value;calc();scheduleSave();};
+$("presets").innerHTML=Object.keys(PRESETS).map((n,i)=>`<button data-p="${esc(n)}">${esc(n)}</button>`).join("");
+$("presets").onclick=e=>{const n=e.target.dataset.p;if(!n)return;saveNow();newFromTemplate(n);};
+$("applyM0").onclick=()=>{try{const j=JSON.parse($("m0json").value);if(j.format!=="biz-calc-params")throw new Error("Это не экспорт из M0.");const o={};let n=0;for(const y of Object.keys(j.years))for(const p of j.years[y]){const s=p.project||p.user;if(s&&typeof s.value==="number"){o[p.code+"@"+y]=s;n++;}}OVR=o;$("m0msg").textContent="Применено правок: "+n;calc();scheduleSave();}catch(e){$("m0msg").textContent=e.message||"Ошибка JSON";}};
+$("clearM0").onclick=()=>{OVR={};$("m0json").value="";$("m0msg").textContent="Значения по закону";calc();scheduleSave();};
+buildForm();{const L=STORE.list();const p=L.length&&STORE.load(L[0].id);if(p)openProject(p);else newFromTemplate("Кофейня");}
+
+</script></body></html>

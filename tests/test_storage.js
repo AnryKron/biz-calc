@@ -1,0 +1,14 @@
+const S=require('../src/storage.js');let fail=0;const ok=(n,c)=>{if(!c)fail++;console.log((c?'OK  ':'FAIL')+' '+n);};
+const st=S.createStore(S.memoryAdapter());
+const p=S.makeProject('Кофейня',{form:{f_price:'380'},factors:[{src:'SWOT',q:'S',text:'x',weight:3}]});
+st.save(p);ok('list 1',st.list().length===1);
+const l=st.load(p.id);ok('load form',l.form.f_price==='380'&&l.factors.length===1);
+const c=st.duplicate(p.id);ok('dup',st.list().length===2&&c.name.includes('копия')&&c.id!==p.id);
+st.remove(p.id);ok('remove',st.list().length===1&&!st.load(p.id));
+const rt=S.fromJSON(S.toJSON(c));ok('roundtrip',rt.project.name===c.name&&rt.warnings.length===0);
+let e1;try{S.fromJSON('{bad');}catch(e){e1=e.message}ok('bad json',/JSON/.test(e1));
+let e2;try{S.fromJSON(JSON.stringify({format:'x'}));}catch(e){e2=e.message}ok('wrong format',/не файл/.test(e2));
+let e3;try{S.fromJSON(JSON.stringify({format:'biz-calc-project',schema:99}));}catch(e){e3=e.message}ok('future schema',/новой версии/.test(e3));
+const v=S.fromJSON(JSON.stringify({format:'biz-calc-project',name:'',factors:[{src:'X'}],overrides:{'a@2026':{value:'1'}}}));
+ok('normalize',v.project.name==='Импортированный проект'&&v.project.factors.length===0&&!Object.keys(v.project.overrides).length&&v.warnings.length>=2);
+console.log(fail?fail+' FAILED':'ALL PASSED');if(fail)process.exit(1);

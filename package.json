@@ -1,0 +1,20 @@
+{
+  "name": "biz-calc",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Бизнес-калькулятор: оценка и планирование проекта для ИП в РФ (налоги 2026, финмодель, SWOT/PEST)",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "test": "node tests/test_engine.js && node tests/test_finmodel.js && node tests/test_analysis.js && node tests/test_storage.js",
+    "android:sync": "npm run build && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
+  }
+}

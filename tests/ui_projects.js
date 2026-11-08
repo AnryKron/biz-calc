@@ -1,0 +1,20 @@
+const {JSDOM}=require('jsdom');const fs=require('fs');
+const html=fs.readFileSync(__dirname+'/../www/index.html','utf8');
+const dom=new JSDOM(html,{runScripts:'dangerously',url:'https://x.test/'});const w=dom.window,d=w.document;
+w.addEventListener('error',e=>console.log('ERR',e.message));
+const $=id=>d.getElementById(id);const sel=()=>[...$('projSel').options].map(o=>o.textContent);
+console.log('init',sel(),'|',$('pStatus').textContent);
+$('projName').value='Моя кофейня';$('projName').dispatchEvent(new w.Event('input'));
+const pr=$('f_price');pr.value='420';pr.dispatchEvent(new w.Event('input',{bubbles:true}));
+setTimeout(()=>{console.log('after edit',sel(),'|',$('pStatus').textContent);
+ d.querySelectorAll('#presets button')[2].click();console.log('after tpl',sel());
+ const id=[...$('projSel').options].find(o=>o.textContent==='Моя кофейня').value;$('projSel').value=id;$('projSel').dispatchEvent(new w.Event('change'));
+ console.log('price restored',$('f_price').value,'factors',w.eval('FACTORS.length'));
+ $('pExp').click();const txt=$('xT').value;w.eval('closeSheet()');
+ $('pImp').click();$('iT').value=txt;$('iOk').click();console.log('after import',sel(),'|',$('pStatus').textContent);
+ $('pDup').click();console.log('after dup',sel());$('pDel').click();$('dOk').click();console.log('after del',sel());
+ const ls={};for(let i=0;i<w.localStorage.length;i++){const k=w.localStorage.key(i);ls[k]=w.localStorage.getItem(k);}
+ const dom2=new JSDOM(html,{runScripts:'dangerously',url:'https://y.test/',beforeParse(win){for(const k in ls)win.localStorage.setItem(k,ls[k]);}});
+ const d2=dom2.window.document;console.log('reload',[...d2.getElementById('projSel').options].map(o=>o.textContent),'name',d2.getElementById('projName').value,'price',d2.getElementById('f_price').value);
+ $('pImp').click();$('iT').value='{"format":"nope"}';$('iOk').click();console.log('bad import msg:',$('iM').textContent);
+},900);
